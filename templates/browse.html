@@ -1,0 +1,6 @@
+  <div>
+    <p>{{.TemplateData.Tags}}</p>
+    {{ range $i, $v := .TemplateData.Resources }}
+    <p>{{ $v.Title }}</p>
+    {{ end }}
+  </div>

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/boltdb/bolt"
 	"strings"
+
+	"github.com/boltdb/bolt"
 )
 
 type resource struct {

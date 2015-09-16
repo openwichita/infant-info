@@ -49,7 +49,7 @@ func main() {
 	site.Title = siteTitle
 	site.SubTitle = ""
 	site.DevMode = false
-	LoadDatabase()
+	loadDatabase()
 
 	args := os.Args[1:]
 	for i := range args {
@@ -61,13 +61,13 @@ func main() {
 	r = mux.NewRouter()
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", assetHandler))
-	r.HandleFunc("/", HandleSearch)
-	r.HandleFunc("/search", HandleSearch)
-	r.HandleFunc("/browse", HandleBrowse)
-	r.HandleFunc("/browse/{tags}", HandleBrowse).Name("browse")
-	r.HandleFunc("/about", HandleAbout).Name("about")
-	r.HandleFunc("/admin", HandleAdmin)
-	r.HandleFunc("/admin/{category}/{id}", HandleAdmin)
+	r.HandleFunc("/", handleSearch)
+	r.HandleFunc("/search", handleSearch)
+	r.HandleFunc("/browse", handleBrowse)
+	r.HandleFunc("/browse/{tags}", handleBrowse).Name("browse")
+	r.HandleFunc("/about", handleAbout).Name("about")
+	r.HandleFunc("/admin", handleAdmin)
+	r.HandleFunc("/admin/{category}/{id}", handleAdmin)
 
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
@@ -115,17 +115,17 @@ handleSearch
 The main handler for all 'search' functionality
 */
 func handleSearch(w http.ResponseWriter, req *http.Request) {
-	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
 	site.SubTitle = "Search Resources"
-	SetupMenu("")
-	SetMenuItemActive("Search")
+	setupMenu("")
+	setMenuItemActive("Search")
 	// Was a search action requested?
 	v := req.URL.Query()
 	if qry := v.Get("q"); qry != "" {
-		PrintOutput(fmt.Sprintf("  Query: %s\n", qry))
+		printOutput(fmt.Sprintf("  Query: %s\n", qry))
 	}
-	ShowPage("search.html", site, w)
+	showPage("search.html", site, w)
 }
 
 /*
@@ -135,26 +135,26 @@ The main handler for all 'browse' functionality
 func handleBrowse(w http.ResponseWriter, req *http.Request) {
 	type browseData struct {
 		Tags      string
-		Resources []Resource
+		Resources []resource
 	}
 	vars := mux.Vars(req)
 	tags := vars["tags"]
 
-	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
-	resources, err := GetResources()
+	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	resources, err := getResources()
 	if err != nil {
 		showFlashMessage("Error Loading Resources!", "error")
 	}
 
 	site.SubTitle = "Browse Resources"
-	SetupMenu("")
-	SetMenuItemActive("Browse")
+	setupMenu("")
+	setMenuItemActive("Browse")
 
 	site.TemplateData = browseData{
 		Tags:      tags,
 		Resources: resources,
 	}
-	ShowPage("browse.html", site, w)
+	showPage("browse.html", site, w)
 }
 
 /*
@@ -162,13 +162,13 @@ handleAbout
 Show the about screen
 */
 func handleAbout(w http.ResponseWriter, req *http.Request) {
-	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
 	site.SubTitle = "About"
-	SetupMenu("")
-	SetMenuItemActive("About")
+	setupMenu("")
+	setMenuItemActive("About")
 
-	ShowPage("about.html", site, w)
+	showPage("about.html", site, w)
 }
 
 /*
@@ -176,11 +176,11 @@ handleAdmin
 Handle entry into the Admin side of things
 */
 func handleAdmin(w http.ResponseWriter, req *http.Request) {
-	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
 	site.SubTitle = ""
-	SetupMenu("admin")
-	SetMenuItemActive("Admin")
+	setupMenu("admin")
+	setMenuItemActive("Admin")
 
 	/* Create/Update Resource Example:
 	if err := SaveResource(
@@ -190,7 +190,7 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	}
 	*/
 
-	ShowPage("admin.html", site, w)
+	showPage("admin.html", site, w)
 }
 
 /*
@@ -202,11 +202,11 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 		"htmlheader.html",
 		"menu.html",
 		"header.html",
-		tmpl_name,
+		tmplName,
 		"footer.html",
 		"htmlfooter.html",
 	} {
-		if err := OutputTemplate(tmpl, tmpl_data, w); err != nil {
+		if err := outputTemplate(tmpl, tmplData, w); err != nil {
 			return err
 		}
 	}
@@ -218,13 +218,13 @@ outputTemplate
 Spit out a template
 */
 func outputTemplate(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
-	_, err := os.Stat("templates/" + tmpl_name)
+	_, err := os.Stat("templates/" + tmplName)
 	if err == nil {
-		t := template.New(tmpl_name)
-		t, _ = t.ParseFiles("templates/" + tmpl_name)
-		return t.Execute(w, tmpl_data)
+		t := template.New(tmplName)
+		t, _ = t.ParseFiles("templates/" + tmplName)
+		return t.Execute(w, tmplData)
 	}
-	return fmt.Errorf("WebServer: Cannot load template (templates/%s): File not found", tmpl_name)
+	return fmt.Errorf("WebServer: Cannot load template (templates/%s): File not found", tmplName)
 }
 
 /*

@@ -47,10 +47,12 @@ resources		(bucket)
    \-tags		(pair) (csv)
 */
 
-func saveResource(res Resource) error {
+func saveResource(res resource) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
-		if newB, err := b.CreateBucketIfNotExists([]byte(res.Title)); err != nil {
+		var newB *bolt.Bucket
+		var err error
+		if newB, err = b.CreateBucketIfNotExists([]byte(res.Title)); err != nil {
 			return err
 		}
 		if err := newB.Put([]byte("url"), []byte(res.URL)); err != nil {
@@ -64,15 +66,15 @@ func saveResource(res Resource) error {
 	return err
 }
 
-func getResources() ([]Resource, error) {
-	var ret []Resource
+func getResources() ([]resource, error) {
+	var ret []resource
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
 		b.ForEach(func(k, v []byte) error {
 			if v == nil {
 				// Nested Bucket
 				rB := b.Bucket(k)
-				var retRes Resource
+				var retRes resource
 				retRes.Title = string(k)
 				if rVal := rB.Get([]byte("tags")); rVal != nil {
 					retRes.Tags = strings.Split(string(rVal), ",")

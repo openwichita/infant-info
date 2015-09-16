@@ -5,16 +5,20 @@ import (
 	"strings"
 )
 
-type Resource struct {
+type resource struct {
 	Title string
-	Url   string
+	URL   string
 	Tags  []string
 }
 
-var database_file string
+var databaseFile string
 var db *bolt.DB
 
-func LoadDatabase() error {
+/*
+loadDatabase Opens the database file and makes sure that the
+initial 'resources' bucket exists
+*/
+func loadDatabase() error {
 	var err error
 	db, err = bolt.Open("ii.db", 0600, nil)
 	if err != nil {
@@ -31,53 +35,52 @@ func LoadDatabase() error {
 	return nil
 }
 
-/**
- * All resources are saved in the boltdb like so:
- *	resources		(bucket)
- *	|- Title 1	(bucket)
- *	|	 |-url		(pair)
- *	|	 \-tags		(pair) (csv)
- *	|
- *	\- Title 2	(bucket)
- *		 |-url		(pair)
- *		 \-tags		(pair) (csv)
- */
+/*
+All resources are saved in the boltdb like so:
+resources		(bucket)
+|- Title 1	(bucket)
+|	 |-url		(pair)
+|	 \-tags		(pair) (csv)
+|
+\- Title 2	(bucket)
+   |-url		(pair)
+   \-tags		(pair) (csv)
+*/
 
-func SaveResource(res Resource) error {
+func saveResource(res Resource) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
-		if new_b, err := b.CreateBucketIfNotExists([]byte(res.Title)); err != nil {
+		if newB, err := b.CreateBucketIfNotExists([]byte(res.Title)); err != nil {
 			return err
-		} else {
-			if err := new_b.Put([]byte("url"), []byte(res.Url)); err != nil {
-				return err
-			}
-			if err := new_b.Put([]byte("tags"), []byte(strings.Join(res.Tags, ","))); err != nil {
-				return err
-			}
+		}
+		if err := newB.Put([]byte("url"), []byte(res.URL)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("tags"), []byte(strings.Join(res.Tags, ","))); err != nil {
+			return err
 		}
 		return nil
 	})
 	return err
 }
 
-func GetResources() ([]Resource, error) {
+func getResources() ([]Resource, error) {
 	var ret []Resource
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
 		b.ForEach(func(k, v []byte) error {
 			if v == nil {
 				// Nested Bucket
-				r_b := b.Bucket(k)
-				var ret_res Resource
-				ret_res.Title = string(k)
-				if r_val := r_b.Get([]byte("tags")); r_val != nil {
-					ret_res.Tags = strings.Split(string(r_val), ",")
+				rB := b.Bucket(k)
+				var retRes Resource
+				retRes.Title = string(k)
+				if rVal := rB.Get([]byte("tags")); rVal != nil {
+					retRes.Tags = strings.Split(string(rVal), ",")
 				}
-				if r_val := r_b.Get([]byte("url")); r_val != nil {
-					ret_res.Url = string(r_val)
+				if rVal := rB.Get([]byte("url")); rVal != nil {
+					retRes.URL = string(rVal)
 				}
-				ret = append(ret, ret_res)
+				ret = append(ret, retRes)
 			}
 			return nil
 		})

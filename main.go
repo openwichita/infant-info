@@ -12,27 +12,27 @@ import (
 
 var siteTitle = "Infant Info"
 
-/**
- *	SiteData contains data needed for many templates
- *	Header/Footer/Menu, etc.
- */
+/*
+SiteData contains data needed for many templates
+Header/Footer/Menu, etc.
+*/
 type SiteData struct {
 	Title        string
 	SubTitle     string
 	AdminEmail   string
 	DevMode      bool
-	Menu         []MenuItem
+	Menu         []menuItem
 	AdminMode    bool
 	TemplateData interface{}
-	Flash        FlashMessage
+	Flash        flashMessage
 }
 
-type FlashMessage struct {
+type flashMessage struct {
 	Message string
 	Status  string
 }
 
-type MenuItem struct {
+type menuItem struct {
 	Text   string
 	Link   string
 	Active bool
@@ -41,7 +41,7 @@ type MenuItem struct {
 var site SiteData
 
 /* Set this to something else when in production */
-var session_store = sessions.NewCookieStore([]byte("webserver secret wahoo"))
+var sessionStore = sessions.NewCookieStore([]byte("webserver secret wahoo"))
 
 var r *mux.Router
 
@@ -73,16 +73,17 @@ func main() {
 	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
 }
 
-/* ShowFlashMessage
- * Will put text into the 'aside' in the header template
- * Valid 'status' values include:
- *	- primary		(blue)
- *	- secondary (light blue)
- *	- success		(green)
- *	- error			(maroon)
- *	- warning		(orange)
- */
-func ShowFlashMessage(msg, status string) {
+/*
+showFlashMessage
+Will put text into the 'aside' in the header template
+Valid 'status' values include:
+- primary		(blue)
+- secondary (light blue)
+- success		(green)
+- error			(maroon)
+- warning		(orange)
+*/
+func showFlashMessage(msg, status string) {
 	if status == "" {
 		status = "primary"
 	}
@@ -90,28 +91,30 @@ func ShowFlashMessage(msg, status string) {
 	site.Flash.Status = status
 }
 
-/* Maybe we want a different menu for the 'admin' stuff?
- * Probably.
- */
-func SetupMenu(which string) {
+/*
+Maybe we want a different menu for the 'admin' stuff?
+Probably.
+*/
+func setupMenu(which string) {
 	if which == "admin" {
 		site.AdminMode = true
-		site.Menu = make([]MenuItem, 0, 0)
-		site.Menu = append(site.Menu, MenuItem{Text: "Users", Link: "/admin/users"})
-		site.Menu = append(site.Menu, MenuItem{Text: "Resources", Link: "/admin/resources"})
+		site.Menu = make([]menuItem, 0, 0)
+		site.Menu = append(site.Menu, menuItem{Text: "Users", Link: "/admin/users"})
+		site.Menu = append(site.Menu, menuItem{Text: "Resources", Link: "/admin/resources"})
 	} else {
 		site.AdminMode = false
-		site.Menu = make([]MenuItem, 0, 0)
-		site.Menu = append(site.Menu, MenuItem{Text: "Search", Link: "/search"})
-		site.Menu = append(site.Menu, MenuItem{Text: "Browse", Link: "/browse"})
-		site.Menu = append(site.Menu, MenuItem{Text: "About", Link: "/about"})
+		site.Menu = make([]menuItem, 0, 0)
+		site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search"})
+		site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse"})
+		site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about"})
 	}
 }
 
-/* HandleSearch
- *	The main handler for all 'search' functionality
- */
-func HandleSearch(w http.ResponseWriter, req *http.Request) {
+/*
+handleSearch
+The main handler for all 'search' functionality
+*/
+func handleSearch(w http.ResponseWriter, req *http.Request) {
 	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
 	site.SubTitle = "Search Resources"
@@ -125,10 +128,11 @@ func HandleSearch(w http.ResponseWriter, req *http.Request) {
 	ShowPage("search.html", site, w)
 }
 
-/* HandleBrowse
- *	The main handler for all 'browse' functionality
- */
-func HandleBrowse(w http.ResponseWriter, req *http.Request) {
+/*
+handleBrowse
+The main handler for all 'browse' functionality
+*/
+func handleBrowse(w http.ResponseWriter, req *http.Request) {
 	type browseData struct {
 		Tags      string
 		Resources []Resource
@@ -139,7 +143,7 @@ func HandleBrowse(w http.ResponseWriter, req *http.Request) {
 	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
 	resources, err := GetResources()
 	if err != nil {
-		ShowFlashMessage("Error Loading Resources!", "error")
+		showFlashMessage("Error Loading Resources!", "error")
 	}
 
 	site.SubTitle = "Browse Resources"
@@ -153,10 +157,11 @@ func HandleBrowse(w http.ResponseWriter, req *http.Request) {
 	ShowPage("browse.html", site, w)
 }
 
-/* HandleAbout
- *	Show the about screen
- */
-func HandleAbout(w http.ResponseWriter, req *http.Request) {
+/*
+handleAbout
+Show the about screen
+*/
+func handleAbout(w http.ResponseWriter, req *http.Request) {
 	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
 	site.SubTitle = "About"
@@ -166,10 +171,11 @@ func HandleAbout(w http.ResponseWriter, req *http.Request) {
 	ShowPage("about.html", site, w)
 }
 
-/* HandleAdmin
- *	Handle entry into the Admin side of things
- */
-func HandleAdmin(w http.ResponseWriter, req *http.Request) {
+/*
+handleAdmin
+Handle entry into the Admin side of things
+*/
+func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	PrintOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
 	site.SubTitle = ""
@@ -187,10 +193,11 @@ func HandleAdmin(w http.ResponseWriter, req *http.Request) {
 	ShowPage("admin.html", site, w)
 }
 
-/* ShowPage
- *	Load a template and all of the surrounding templates
- */
-func ShowPage(tmpl_name string, tmpl_data interface{}, w http.ResponseWriter) error {
+/*
+showPage
+Load a template and all of the surrounding templates
+*/
+func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
 	for _, tmpl := range []string{
 		"htmlheader.html",
 		"menu.html",
@@ -206,24 +213,25 @@ func ShowPage(tmpl_name string, tmpl_data interface{}, w http.ResponseWriter) er
 	return nil
 }
 
-/* OutputTemplate
- *	Spit out a template
- */
-func OutputTemplate(tmpl_name string, tmpl_data interface{}, w http.ResponseWriter) error {
+/*
+outputTemplate
+Spit out a template
+*/
+func outputTemplate(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
 	_, err := os.Stat("templates/" + tmpl_name)
 	if err == nil {
 		t := template.New(tmpl_name)
 		t, _ = t.ParseFiles("templates/" + tmpl_name)
 		return t.Execute(w, tmpl_data)
-	} else {
-		return fmt.Errorf("WebServer: Cannot load template (templates/%s): File not found", tmpl_name)
 	}
+	return fmt.Errorf("WebServer: Cannot load template (templates/%s): File not found", tmpl_name)
 }
 
-/* SetMenuItemActive
- *	Sets a menu item to active, all others to false
- */
-func SetMenuItemActive(which string) {
+/*
+setMenuItemActive
+Sets a menu item to active, all others to false
+*/
+func setMenuItemActive(which string) {
 	for i := range site.Menu {
 		if site.Menu[i].Text == which {
 			site.Menu[i].Active = true
@@ -233,10 +241,11 @@ func SetMenuItemActive(which string) {
 	}
 }
 
-/* PrintOutput
- *	Print something to the screen, if conditions are right
- */
-func PrintOutput(out string) {
+/*
+printOutput
+Print something to the screen, if conditions are right
+*/
+func printOutput(out string) {
 	if site.DevMode {
 		fmt.Printf(out)
 	}

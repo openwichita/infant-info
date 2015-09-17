@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 
@@ -50,7 +51,9 @@ func main() {
 	site.Title = siteTitle
 	site.SubTitle = ""
 	site.DevMode = false
-	loadDatabase()
+	if err := loadDatabase(); err != nil {
+		log.Fatal("Error loading database", err)
+	}
 
 	args := os.Args[1:]
 	for i := range args {
@@ -71,7 +74,7 @@ func main() {
 	r.HandleFunc("/admin/{category}/{id}", handleAdmin)
 
 	http.Handle("/", r)
-	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
+	log.Fatal(http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux)))
 }
 
 /*

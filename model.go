@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
-	"github.com/boltdb/bolt"
 	"strings"
+
+	"github.com/boltdb/bolt"
 )
 
 type resource struct {
@@ -25,14 +26,19 @@ func loadDatabase() error {
 	if err != nil {
 		return err
 	}
+
 	// Make sure that the 'resources' bucket exists
-	db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("resources"))
 		if err != nil {
 			return err
 		}
 		return nil
 	})
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -75,7 +81,7 @@ func getResources() ([]resource, error) {
 	var ret []resource
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			if v == nil {
 				// Nested Bucket
 				rB := b.Bucket(k)
@@ -91,6 +97,9 @@ func getResources() ([]resource, error) {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	return ret, err

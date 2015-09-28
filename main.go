@@ -3,13 +3,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 
 var siteTitle = "Infant Info"
@@ -51,7 +53,9 @@ func main() {
 	site.Title = siteTitle
 	site.SubTitle = ""
 	site.DevMode = false
-	loadDatabase()
+	if err := loadDatabase(); err != nil {
+		log.Fatal("Error loading database", err)
+	}
 	defer closeDatabase()
 
 	args := os.Args[1:]
@@ -75,7 +79,7 @@ func main() {
 	r.HandleFunc("/download", handleBackupData)
 
 	http.Handle("/", r)
-	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
+	log.Fatal(http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux)))
 }
 
 /*

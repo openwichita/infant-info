@@ -29,6 +29,7 @@ type SiteData struct {
 	AdminMode    bool
 	TemplateData interface{}
 	Flash        flashMessage
+	Port         int
 }
 
 type flashMessage struct {
@@ -53,6 +54,8 @@ func main() {
 	site.Title = siteTitle
 	site.SubTitle = ""
 	site.DevMode = false
+	site.Port = 8080
+
 	if err := loadDatabase(); err != nil {
 		log.Fatal("Error loading database", err)
 	}
@@ -79,7 +82,8 @@ func main() {
 	r.HandleFunc("/download", handleBackupData)
 
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux)))
+	printOutput(fmt.Sprintf("Listening on port %d\n", site.Port))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", site.Port), context.ClearHandler(http.DefaultServeMux)))
 }
 
 /*

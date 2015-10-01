@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -39,6 +40,10 @@ func loadDatabase() error {
 		return err
 	}
 	return nil
+}
+
+func closeDatabase() error {
+	return db.Close()
 }
 
 /*
@@ -98,4 +103,26 @@ func getResources() ([]resource, error) {
 		return nil
 	})
 	return ret, err
+}
+
+func backupDatabase(b *bytes.Buffer) error {
+	closeDatabase()
+	err := db.View(func(tx *bolt.Tx) error {
+		_, err := tx.WriteTo(b)
+		return err
+	})
+	loadDatabase()
+	return err
+	/*
+		err := db.View(func(tx *bolt.Tx) error {
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", `attachment; filename="infant-info.db"`)
+			w.Header().Set("Content-Length", strconv.Itoa(int(tx.Size())))
+			_, err := tx.WriteTo(w)
+			return err
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	*/
 }

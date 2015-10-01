@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -54,6 +56,7 @@ func main() {
 	if err := loadDatabase(); err != nil {
 		log.Fatal("Error loading database", err)
 	}
+	defer closeDatabase()
 
 	args := os.Args[1:]
 	for i := range args {
@@ -72,6 +75,8 @@ func main() {
 	r.HandleFunc("/about", handleAbout).Name("about")
 	r.HandleFunc("/admin", handleAdmin)
 	r.HandleFunc("/admin/{category}/{id}", handleAdmin)
+
+	r.HandleFunc("/download", handleBackupData)
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux)))
@@ -195,6 +200,27 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	*/
 
 	showPage("admin.html", site, w)
+}
+
+/*
+handleBackupData
+Pushes a download of the resource database
+*/
+func handleBackupData(w http.ResponseWriter, req *http.Request) {
+	var b *bytes.Buffer
+	err := backupDatabase(b)
+	fmt.Println("DB Backup Requested")
+	fmt.Printf("DB Size: %d\n", b.Len())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", `attachment; filename="infant-info.db"`)
+	w.Header().Set("Content-Length", strconv.Itoa(int(b.Len())))
+	_, err = b.WriteTo(w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 /*

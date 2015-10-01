@@ -1,0 +1,26 @@
+<div class="content">
+  <p>Admin Login</p>
+
+  <form class="pure-form pure-form-aligned" action="/admin/dologin" method="POST">
+    <fieldset>
+      <div class="pure-control-group">
+        <label for="email">Email Address</label>
+        <input id="email" name="email" type="text" placeholder="Email Address">
+      </div>
+
+      <div class="pure-control-group">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="Password">
+      </div>
+
+      <div class="pure-controls">
+        <!-- Not remembering it for now.
+        <label for="remember" class="pure-checkbox">
+          <input id="remember" name="remember" type="checkbox"> Remember Me
+        </label>
+        -->
+        <button type="submit" class="pure-button pure-button-primary">Submit</button>
+      </div>
+    </fieldset>
+  </form>
+</div>

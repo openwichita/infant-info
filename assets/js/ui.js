@@ -21,11 +21,11 @@
     element.className = classes.join(' ');
   }
 
-  if(flashMsg.innerText != "") {
+  if(flashMsg != null && flashMsg.innerText != "") {
      flashMsg.removeAttribute('hidden');
   }
 
-  menuLink.onClick = function(e) {
+  menuLink.onclick = function(e) {
     var active = 'active';
     e.preventDefault();
     toggleClass(layout, active);  

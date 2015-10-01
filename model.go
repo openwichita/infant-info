@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/boltdb/bolt"
 )
@@ -15,11 +18,10 @@ type resource struct {
 
 var databaseFile string
 var db *bolt.DB
+var dbAdmin *bolt.DB
 
-/*
-loadDatabase Opens the database file and makes sure that the
-initial 'resources' bucket exists
-*/
+// loadDatabase Opens the database file and makes sure that the
+// initial 'resources' bucket exists
 func loadDatabase() error {
 	var err error
 	db, err = bolt.Open("ii.db", 0600, nil)
@@ -46,17 +48,15 @@ func closeDatabase() error {
 	return db.Close()
 }
 
-/*
-All resources are saved in the boltdb like so:
-resources		(bucket)
-|- Title 1	(bucket)
-|	 |-url		(pair)
-|	 \-tags		(pair) (csv)
-|
-\- Title 2	(bucket)
-   |-url		(pair)
-   \-tags		(pair) (csv)
-*/
+// All resources are saved in the boltdb like so:
+// resources		(bucket)
+// |- Title 1	(bucket)
+// |	 |-url		(pair)
+// |	 \-tags		(pair) (csv)
+// |
+// \- Title 2	(bucket)
+//    |-url		(pair)
+//    \-tags		(pair) (csv)
 
 func saveResource(res resource) error {
 	err := db.Update(func(tx *bolt.Tx) error {
@@ -125,4 +125,72 @@ func backupDatabase(b *bytes.Buffer) error {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	*/
+}
+
+// Admin Functions
+func loadAdminDatabase() error {
+	var err error
+	dbAdmin, err = bolt.Open("iiAdmin.db", 0600, nil)
+	if err != nil {
+		return err
+	}
+
+	// Make sure that the 'users' bucket exists
+	err = dbAdmin.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("users"))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func closeAdminDatabase() error {
+	return dbAdmin.Close()
+}
+
+func adminCheckCredentials(email, password string) error {
+	if err := loadAdminDatabase(); err != nil {
+		return err
+	}
+	err := dbAdmin.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("users"))
+		if userBucket := b.Bucket([]byte(email)); userBucket != nil {
+			if pw := userBucket.Get([]byte("password")); pw != nil {
+				return bcrypt.CompareHashAndPassword(pw, []byte(password))
+			}
+		}
+		return fmt.Errorf("Invalid User")
+	})
+	closeAdminDatabase()
+	return err
+}
+
+func adminSaveUser(email, password string) error {
+	cryptPW, cryptError := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if cryptError != nil {
+		return cryptError
+	}
+	if err := loadAdminDatabase(); err != nil {
+		return err
+	}
+	err := dbAdmin.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("users"))
+		var newB *bolt.Bucket
+		var err error
+		if newB, err = b.CreateBucketIfNotExists([]byte(email)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("password"), cryptPW); err != nil {
+			return err
+		}
+		return nil
+	})
+	closeAdminDatabase()
+	return err
 }

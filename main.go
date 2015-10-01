@@ -16,10 +16,8 @@ import (
 
 var siteTitle = "Infant Info"
 
-/*
-SiteData contains data needed for many templates
-Header/Footer/Menu, etc.
-*/
+// SiteData contains data needed for many templates
+// Header/Footer/Menu, etc.
 type SiteData struct {
 	Title        string
 	SubTitle     string
@@ -30,6 +28,7 @@ type SiteData struct {
 	TemplateData interface{}
 	Flash        flashMessage
 	Port         int
+	SessionName  string
 }
 
 type flashMessage struct {
@@ -45,7 +44,7 @@ type menuItem struct {
 
 var site SiteData
 
-/* Set this to something else when in production */
+// Set this to something else when in production
 var sessionStore = sessions.NewCookieStore([]byte("webserver secret wahoo"))
 
 var r *mux.Router
@@ -55,6 +54,7 @@ func main() {
 	site.SubTitle = ""
 	site.DevMode = false
 	site.Port = 8080
+	site.SessionName = "infant-info"
 
 	if err := loadDatabase(); err != nil {
 		log.Fatal("Error loading database", err)
@@ -77,7 +77,8 @@ func main() {
 	r.HandleFunc("/browse/{tags}", handleBrowse).Name("browse")
 	r.HandleFunc("/about", handleAbout).Name("about")
 	r.HandleFunc("/admin", handleAdmin)
-	r.HandleFunc("/admin/{category}/{id}", handleAdmin)
+	r.HandleFunc("/admin/{function}", handleAdmin)
+	r.HandleFunc("/admin/{function}/{subfunc}", handleAdmin)
 
 	r.HandleFunc("/download", handleBackupData)
 
@@ -86,16 +87,14 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", site.Port), context.ClearHandler(http.DefaultServeMux)))
 }
 
-/*
-showFlashMessage
-Will put text into the 'aside' in the header template
-Valid 'status' values include:
-- primary		(blue)
-- secondary (light blue)
-- success		(green)
-- error			(maroon)
-- warning		(orange)
-*/
+// showFlashMessage
+// Will put text into the 'aside' in the header template
+// Valid 'status' values include:
+// - primary		(blue)
+// - secondary (light blue)
+// - success		(green)
+// - error			(maroon)
+// - warning		(orange)
 func showFlashMessage(msg, status string) {
 	if status == "" {
 		status = "primary"
@@ -104,10 +103,8 @@ func showFlashMessage(msg, status string) {
 	site.Flash.Status = status
 }
 
-/*
-Maybe we want a different menu for the 'admin' stuff?
-Probably.
-*/
+// Maybe we want a different menu for the 'admin' stuff?
+// Probably.
 func setupMenu(which string) {
 	if which == "admin" {
 		site.AdminMode = true
@@ -123,10 +120,8 @@ func setupMenu(which string) {
 	}
 }
 
-/*
-handleSearch
-The main handler for all 'search' functionality
-*/
+// handleSearch
+// The main handler for all 'search' functionality
 func handleSearch(w http.ResponseWriter, req *http.Request) {
 	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
@@ -141,10 +136,8 @@ func handleSearch(w http.ResponseWriter, req *http.Request) {
 	showPage("search.html", site, w)
 }
 
-/*
-handleBrowse
-The main handler for all 'browse' functionality
-*/
+// handleBrowse
+// The main handler for all 'browse' functionality
 func handleBrowse(w http.ResponseWriter, req *http.Request) {
 	type browseData struct {
 		Tags      string
@@ -170,10 +163,8 @@ func handleBrowse(w http.ResponseWriter, req *http.Request) {
 	showPage("browse.html", site, w)
 }
 
-/*
-handleAbout
-Show the about screen
-*/
+// handleAbout
+// Show the about screen
 func handleAbout(w http.ResponseWriter, req *http.Request) {
 	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
@@ -184,16 +175,49 @@ func handleAbout(w http.ResponseWriter, req *http.Request) {
 	showPage("about.html", site, w)
 }
 
-/*
-handleAdmin
-Handle entry into the Admin side of things
-*/
+// handleAdmin
+// Handle entry into the Admin side of things
 func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 
-	site.SubTitle = ""
+	vars := mux.Vars(req)
+	adminFunction := vars["function"]
+
+	// First, check if we're logged in
+	session, err := sessionStore.Get(req, site.SessionName)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	userEmail := session.Values["email"]
+	if userEmail == "" {
+		// Not logged in, only allow access to the login page
+		if adminFunction == "dologin" {
+			handleAdminDoLogin(w, req)
+			return
+		}
+		handleAdminLogin(w, req)
+		return
+	}
+
+	site.SubTitle = fmt.Sprintf("Logged in as %s", userEmail)
+
 	setupMenu("admin")
 	setMenuItemActive("Admin")
+
+	if adminFunction == "users" {
+		handleAdminUsers(w, req)
+		return
+	}
+	if adminFunction == "resources" {
+		handleAdminResources(w, req)
+		return
+	}
+	// TODO: Get Logout Working
+	if adminFunction == "dologout" {
+		handleAdminDoLogout(w, req)
+		return
+	}
 
 	/* Create/Update Resource Example:
 	if err := SaveResource(
@@ -206,10 +230,114 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	showPage("admin.html", site, w)
 }
 
-/*
-handleBackupData
-Pushes a download of the resource database
-*/
+// handleAdminLogin
+// Show the Login screen
+func handleAdminLogin(w http.ResponseWriter, req *http.Request) {
+	site.SubTitle = "Login"
+	setupMenu("")
+	setMenuItemActive("Admin")
+	showPage("admin-login.html", site, w)
+}
+
+// handleAdminDoLogin
+// Verify the provided credentials, set up a cookie (if requested)
+// And redirect back to /admin
+func handleAdminDoLogin(w http.ResponseWriter, req *http.Request) {
+	// Fetch the login credentials
+	email := req.FormValue("email")
+	password := req.FormValue("password")
+	// Remember functionality is not included (yet? ever?)
+	// remember := req.FormValue("remember")
+	if email != "" && password != "" {
+		printOutput(fmt.Sprintf("  Login Request (%s)\n", email, password))
+		if err := adminCheckCredentials(email, password); err != nil {
+			// Couldn't find the credentials
+			printOutput(fmt.Sprintf("		Failed!\n"))
+		} else {
+			printOutput(fmt.Sprintf("		Success!\n"))
+			session, err := sessionStore.Get(req, site.SessionName)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			session.Values["email"] = email
+			session.Save(req, w)
+		}
+	}
+
+	http.Redirect(w, req, "/admin", 301)
+}
+
+// TODO: Get Logout Working
+// If you figure out why it's not, please let me know. :)
+func handleAdminDoLogout(w http.ResponseWriter, req *http.Request) {
+	session, err := sessionStore.Get(req, site.SessionName)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	session.Values["email"] = ""
+	session.Save(req, w)
+
+	http.Redirect(w, req, "/", 301)
+}
+
+func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
+	site.SubTitle = "User Management"
+	setupMenu("admin")
+	setMenuItemActive("Users")
+
+	vars := mux.Vars(req)
+	userFunction := vars["subfunc"]
+	if userFunction == "save" {
+		handleAdminSaveUser(w, req)
+		return
+	}
+
+	// No subfunc given, display users
+	showPage("admin-users.html", site, w)
+}
+
+func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
+	// Fetch the login credentials
+	email := req.FormValue("email")
+	password := req.FormValue("password")
+	if email != "" && password != "" {
+		printOutput(fmt.Sprintf("  Save User Request (%s:%s)\n", email, password))
+		if err := adminSaveUser(email, password); err != nil {
+			printOutput(fmt.Sprintf("		Failed!\n"))
+			// TODO: Set Flash Message for Failure
+		} else {
+			printOutput(fmt.Sprintf("		Success!\n"))
+			// TODO: Set Flash Message for Success
+		}
+	}
+
+	http.Redirect(w, req, "/admin/users", 301)
+}
+
+func handleAdminResources(w http.ResponseWriter, req *http.Request) {
+	site.SubTitle = "Edit Resources"
+	setupMenu("admin")
+	setMenuItemActive("Resources")
+
+	vars := mux.Vars(req)
+	resFunction := vars["subfunc"]
+	if resFunction == "save" {
+		handleAdminSaveResource(w, req)
+		return
+	}
+
+	// No subfunc given, display users
+	showPage("admin-resources.html", site, w)
+}
+
+func handleAdminSaveResource(w http.ResponseWriter, req *http.Request) {
+	http.Redirect(w, req, "/admin/resources", 301)
+}
+
+// handleBackupData
+// Pushes a download of the resource database
 func handleBackupData(w http.ResponseWriter, req *http.Request) {
 	var b *bytes.Buffer
 	err := backupDatabase(b)
@@ -227,10 +355,8 @@ func handleBackupData(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-/*
-showPage
-Load a template and all of the surrounding templates
-*/
+// showPage
+// Load a template and all of the surrounding templates
 func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
 	for _, tmpl := range []string{
 		"htmlheader.html",
@@ -247,10 +373,8 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 	return nil
 }
 
-/*
-outputTemplate
-Spit out a template
-*/
+// outputTemplate
+// Spit out a template
 func outputTemplate(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
 	_, err := os.Stat("templates/" + tmplName)
 	if err == nil {
@@ -261,10 +385,8 @@ func outputTemplate(tmplName string, tmplData interface{}, w http.ResponseWriter
 	return fmt.Errorf("WebServer: Cannot load template (templates/%s): File not found", tmplName)
 }
 
-/*
-setMenuItemActive
-Sets a menu item to active, all others to false
-*/
+// setMenuItemActive
+// Sets a menu item to active, all others to inactive
 func setMenuItemActive(which string) {
 	for i := range site.Menu {
 		if site.Menu[i].Text == which {
@@ -275,10 +397,8 @@ func setMenuItemActive(which string) {
 	}
 }
 
-/*
-printOutput
-Print something to the screen, if conditions are right
-*/
+// printOutput
+// Print something to the screen, if conditions are right
 func printOutput(out string) {
 	if site.DevMode {
 		fmt.Printf(out)

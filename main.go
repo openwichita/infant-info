@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -67,6 +68,11 @@ func main() {
 		if args[i] == "--dev" {
 			site.DevMode = true
 		}
+		if strings.HasPrefix(args[i], "--port=") {
+			if newPort, err := strconv.Atoi(strings.Replace(args[i], "--port=", "", -1)); err == nil {
+				site.Port = newPort
+			}
+		}
 	}
 
 	r = mux.NewRouter()
@@ -98,13 +104,16 @@ func main() {
 // - success		(green)
 // - error			(maroon)
 // - warning		(orange)
+/*
 func showFlashMessage(msg, status string) {
+	// TODO: Store Flash Message in Session Flash
 	if status == "" {
 		status = "primary"
 	}
 	site.Flash.Message = msg
 	site.Flash.Status = status
 }
+*/
 
 func initRequest(w http.ResponseWriter, req *http.Request) {
 	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
@@ -158,7 +167,8 @@ func handleBrowse(w http.ResponseWriter, req *http.Request) {
 
 	resources, err := getResources()
 	if err != nil {
-		showFlashMessage("Error Loading Resources!", "error")
+		// TODO: Show Flash Message
+		//showFlashMessage("Error Loading Resources!", "error")
 	}
 
 	site.SubTitle = "Browse Resources"
@@ -271,7 +281,8 @@ func handleAdminDoLogin(w http.ResponseWriter, req *http.Request) {
 			session.Save(req, w)
 		}
 	}
-	showFlashMessage(fmt.Sprintf("Logged in as %s", email), "warning")
+	// TODO: Show Flash Message
+	//showFlashMessage(fmt.Sprintf("Logged in as %s", email), "warning")
 
 	http.Redirect(w, req, "/admin", 301)
 }
@@ -289,7 +300,8 @@ func handleAdminDoLogout(w http.ResponseWriter, req *http.Request) {
 	site.SubTitle = "Login"
 	setupMenu("")
 	setMenuItemActive("Admin")
-	showFlashMessage("You have been logged out.", "secondary")
+	// TODO: Show Flash Message
+	//showFlashMessage("You have been logged out.", "secondary")
 
 	showPage("admin-login.html", site, w)
 
@@ -383,7 +395,6 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 			return err
 		}
 	}
-	clearFlashMessage()
 	return nil
 }
 

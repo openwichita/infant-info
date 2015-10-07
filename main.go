@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	"html/template"
 	"log"
@@ -21,12 +22,10 @@ var siteTitle = "Infant Info"
 type SiteData struct {
 	Title        string
 	SubTitle     string
-	AdminEmail   string
 	DevMode      bool
 	Menu         []menuItem
 	AdminMode    bool
 	TemplateData interface{}
-	Flash        flashMessage
 	Port         int
 	SessionName  string
 }
@@ -56,6 +55,8 @@ func main() {
 	site.Port = 8080
 	site.SessionName = "infant-info"
 
+	gob.Register(&flashMessage{})
+
 	if err := loadDatabase(); err != nil {
 		log.Fatal("Error loading database", err)
 	}
@@ -71,7 +72,6 @@ func main() {
 	r = mux.NewRouter()
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", assetHandler))
-	r.HandleFunc("/", handleSearch)
 	r.HandleFunc("/search", handleSearch)
 	r.HandleFunc("/browse", handleBrowse)
 	r.HandleFunc("/browse/{tags}", handleBrowse).Name("browse")
@@ -79,8 +79,11 @@ func main() {
 	r.HandleFunc("/admin", handleAdmin)
 	r.HandleFunc("/admin/{function}", handleAdmin)
 	r.HandleFunc("/admin/{function}/{subfunc}", handleAdmin)
+	r.HandleFunc("/dologout", handleAdminDoLogout)
 
 	r.HandleFunc("/download", handleBackupData)
+
+	r.HandleFunc("/", handleSearch)
 
 	http.Handle("/", r)
 	printOutput(fmt.Sprintf("Listening on port %d\n", site.Port))
@@ -103,6 +106,12 @@ func showFlashMessage(msg, status string) {
 	site.Flash.Status = status
 }
 
+func initRequest(w http.ResponseWriter, req *http.Request) {
+	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	site.SubTitle = ""
+
+}
+
 // Maybe we want a different menu for the 'admin' stuff?
 // Probably.
 func setupMenu(which string) {
@@ -123,7 +132,7 @@ func setupMenu(which string) {
 // handleSearch
 // The main handler for all 'search' functionality
 func handleSearch(w http.ResponseWriter, req *http.Request) {
-	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	initRequest(w, req)
 
 	site.SubTitle = "Search Resources"
 	setupMenu("")
@@ -139,6 +148,7 @@ func handleSearch(w http.ResponseWriter, req *http.Request) {
 // handleBrowse
 // The main handler for all 'browse' functionality
 func handleBrowse(w http.ResponseWriter, req *http.Request) {
+	initRequest(w, req)
 	type browseData struct {
 		Tags      string
 		Resources []resource
@@ -146,7 +156,6 @@ func handleBrowse(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	tags := vars["tags"]
 
-	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 	resources, err := getResources()
 	if err != nil {
 		showFlashMessage("Error Loading Resources!", "error")
@@ -166,7 +175,7 @@ func handleBrowse(w http.ResponseWriter, req *http.Request) {
 // handleAbout
 // Show the about screen
 func handleAbout(w http.ResponseWriter, req *http.Request) {
-	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	initRequest(w, req)
 
 	site.SubTitle = "About"
 	setupMenu("")
@@ -178,8 +187,7 @@ func handleAbout(w http.ResponseWriter, req *http.Request) {
 // handleAdmin
 // Handle entry into the Admin side of things
 func handleAdmin(w http.ResponseWriter, req *http.Request) {
-	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
-
+	initRequest(w, req)
 	vars := mux.Vars(req)
 	adminFunction := vars["function"]
 
@@ -190,7 +198,7 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	userEmail := session.Values["email"]
-	if userEmail == "" {
+	if userEmail == "" || userEmail == nil {
 		// Not logged in, only allow access to the login page
 		if adminFunction == "dologin" {
 			handleAdminDoLogin(w, req)
@@ -205,17 +213,16 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	setupMenu("admin")
 	setMenuItemActive("Admin")
 
+	if adminFunction == "dologout" {
+		handleAdminDoLogout(w, req)
+		return
+	}
 	if adminFunction == "users" {
 		handleAdminUsers(w, req)
 		return
 	}
 	if adminFunction == "resources" {
 		handleAdminResources(w, req)
-		return
-	}
-	// TODO: Get Logout Working
-	if adminFunction == "dologout" {
-		handleAdminDoLogout(w, req)
 		return
 	}
 
@@ -233,7 +240,7 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 // handleAdminLogin
 // Show the Login screen
 func handleAdminLogin(w http.ResponseWriter, req *http.Request) {
-	site.SubTitle = "Login"
+	site.SubTitle = "Admin Login"
 	setupMenu("")
 	setMenuItemActive("Admin")
 	showPage("admin-login.html", site, w)
@@ -264,22 +271,28 @@ func handleAdminDoLogin(w http.ResponseWriter, req *http.Request) {
 			session.Save(req, w)
 		}
 	}
+	showFlashMessage(fmt.Sprintf("Logged in as %s", email), "warning")
 
 	http.Redirect(w, req, "/admin", 301)
 }
 
-// TODO: Get Logout Working
-// If you figure out why it's not, please let me know. :)
 func handleAdminDoLogout(w http.ResponseWriter, req *http.Request) {
 	session, err := sessionStore.Get(req, site.SessionName)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	session.Values["email"] = ""
+
+	session.Options.MaxAge = -1
 	session.Save(req, w)
 
-	http.Redirect(w, req, "/", 301)
+	site.SubTitle = "Login"
+	setupMenu("")
+	setMenuItemActive("Admin")
+	showFlashMessage("You have been logged out.", "secondary")
+
+	showPage("admin-login.html", site, w)
+
 }
 
 func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
@@ -370,6 +383,7 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 			return err
 		}
 	}
+	clearFlashMessage()
 	return nil
 }
 

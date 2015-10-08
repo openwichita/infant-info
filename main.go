@@ -75,6 +75,8 @@ func main() {
 	}
 
 	r = mux.NewRouter()
+	r.StrictSlash(true)
+
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", assetHandler))
 	r.HandleFunc("/search/", handleSearch)

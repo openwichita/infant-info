@@ -154,6 +154,34 @@ func closeAdminDatabase() error {
 	return dbAdmin.Close()
 }
 
+// adminCheckFirstRun
+// Check if there is an admin account.
+func adminCheckFirstRun() error {
+	if err := loadAdminDatabase(); err != nil {
+		return err
+	}
+	err := dbAdmin.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("users"))
+		// Make sure that we have a bucket in users
+		err := b.ForEach(func(k, v []byte) error {
+			if v == nil {
+				if userBucket := b.Bucket(k); userBucket != nil {
+					// It's a user bucket
+					// Does the bucket have a 'password' key
+					if pw := userBucket.Get([]byte("password")); pw != nil {
+						// We have a 'password' key, call it good
+						return nil
+					}
+				}
+			}
+			return fmt.Errorf("Couldn't find an Admin User")
+		})
+		return err
+	})
+	closeAdminDatabase()
+	return err
+}
+
 func adminCheckCredentials(email, password string) error {
 	if err := loadAdminDatabase(); err != nil {
 		return err

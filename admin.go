@@ -67,10 +67,15 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 // handleAdminLogin
 // Show the Login screen
 func handleAdminLogin(w http.ResponseWriter, req *http.Request) {
-	site.SubTitle = "Admin Login"
 	setupMenu("")
 	setMenuItemActive("Admin")
-	showPage("admin-login.html", site, w)
+	if err := adminCheckFirstRun(); err != nil {
+		site.SubTitle = "Create Admin Account"
+		showPage("admin-createaccount.html", site, w)
+	} else {
+		site.SubTitle = "Admin Login"
+		showPage("admin-login.html", site, w)
+	}
 }
 
 // handleAdminDoLogin
@@ -83,7 +88,7 @@ func handleAdminDoLogin(w http.ResponseWriter, req *http.Request) {
 	// Remember functionality is not included (yet? ever?)
 	// remember := req.FormValue("remember")
 	if email != "" && password != "" {
-		printOutput(fmt.Sprintf("  Login Request (%s)\n", email, password))
+		printOutput(fmt.Sprintf("  Login Request (%s)\n", email))
 		if err := adminCheckCredentials(email, password); err != nil {
 			// Couldn't find the credentials
 			printOutput(fmt.Sprintf("		Failed!\n"))

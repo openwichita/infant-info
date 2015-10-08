@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/gob"
 	"fmt"
 	"html/template"
 	"log"
@@ -58,8 +57,6 @@ func main() {
 	site.Port = 8080
 	site.SessionName = "infant-info"
 
-	gob.Register(&flashMessage{})
-
 	if err := loadDatabase(); err != nil {
 		log.Fatal("Error loading database", err)
 	}
@@ -80,10 +77,10 @@ func main() {
 	r = mux.NewRouter()
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", assetHandler))
-	r.HandleFunc("/search", handleSearch)
-	r.HandleFunc("/browse", handleBrowse)
+	r.HandleFunc("/search/", handleSearch)
+	r.HandleFunc("/browse/", handleBrowse)
 	r.HandleFunc("/browse/{tags}", handleBrowse).Name("browse")
-	r.HandleFunc("/about", handleAbout).Name("about")
+	r.HandleFunc("/about/", handleAbout).Name("about")
 
 	// Admin Subrouter
 	s := r.PathPrefix("/admin").Subrouter()
@@ -139,9 +136,9 @@ func setupMenu(which string) {
 		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Home", Link: "/"})
 	} else {
 		site.AdminMode = false
-		site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search"})
-		site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse"})
-		site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about"})
+		site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search/"})
+		site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse/"})
+		site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about/"})
 
 		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Admin", Link: "/admin/"})
 	}

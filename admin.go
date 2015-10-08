@@ -37,7 +37,7 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	setMenuItemActive("Admin")
 	printOutput("    Admin/" + adminFunction + "\n")
 
-	if adminFunction == "dologout" {
+	if adminFunction == "logout" {
 		printOutput("    Do Logout\n")
 		handleAdminDoLogout(w, req)
 		return

@@ -1,4 +1,6 @@
     </div>
-    <script src="/assets/js/ui.js"></script>
+    {{ range _, $v := .Scripts }}
+    <script src="{{ $v }}"></script>
+    {{ end }}
   </body>
 </html>

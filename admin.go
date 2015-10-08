@@ -10,9 +10,9 @@ import (
 // handleAdmin
 // Handle entry into the Admin side of things
 func handleAdmin(w http.ResponseWriter, req *http.Request) {
-	initRequest(w, req)
+	initAdminRequest(w, req)
 	vars := mux.Vars(req)
-	adminFunction := vars["function"]
+	adminCategory := vars["category"]
 
 	// First, check if we're logged in
 	session, err := sessionStore.Get(req, site.SessionName)
@@ -23,37 +23,35 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	userEmail := session.Values["email"]
 	if userEmail == "" || userEmail == nil {
 		// Not logged in, only allow access to the login page
-		if adminFunction == "dologin" {
+		if adminCategory == "dologin" {
 			handleAdminDoLogin(w, req)
 			return
 		}
-		handleAdminLogin(w, req)
+		if adminCategory == "firstcreate" {
+			handleAdminFirstCreate(w, req)
+			return
+		}
+		if adminCategory == "" {
+			handleAdminLogin(w, req)
+			return
+		}
+		http.Redirect(w, req, "/admin", 301)
 		return
 	}
 
 	site.SubTitle = fmt.Sprintf("Logged in as %s", userEmail)
 
-	setupMenu("admin")
 	setMenuItemActive("Admin")
-	printOutput("    Admin/" + adminFunction + "\n")
 
-	if adminFunction == "firstcreate" {
-		printOutput("    First time Create\n")
-		handleAdminFirstCreate(w, req)
-		return
-	}
-	if adminFunction == "logout" {
-		printOutput("    Do Logout\n")
+	if adminCategory == "dologout" {
 		handleAdminDoLogout(w, req)
 		return
 	}
-	if adminFunction == "users" {
-		printOutput("    Users\n")
+	if adminCategory == "users" {
 		handleAdminUsers(w, req)
 		return
 	}
-	if adminFunction == "resources" {
-		printOutput("    Resources\n")
+	if adminCategory == "resources" {
 		handleAdminResources(w, req)
 		return
 	}
@@ -69,10 +67,31 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	showPage("admin.html", site, w)
 }
 
+func initAdminRequest(w http.ResponseWriter, req *http.Request) {
+	printOutput(fmt.Sprintf("Admin Request: %s\n", req.URL))
+	site.SubTitle = ""
+	//site.Flash = new(flashMessage)
+	site.Menu = make([]menuItem, 0, 0)
+	site.BottomMenu = make([]menuItem, 0, 0)
+
+	site.Stylesheets = make([]string, 0, 0)
+	site.Stylesheets = append(site.Stylesheets, "/assets/css/pure-min.css")
+	site.Stylesheets = append(site.Stylesheets, "/assets/css/ii.css")
+	site.Stylesheets = append(site.Stylesheets, "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css")
+	site.Scripts = make([]string, 0, 0)
+	site.Scripts = append(site.Scripts, "/assets/js/ii.js")
+
+	site.AdminMode = true
+	site.Menu = append(site.Menu, menuItem{Text: "Users", Link: "/admin/users"})
+	site.Menu = append(site.Menu, menuItem{Text: "Resources", Link: "/admin/resources"})
+
+	site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Logout", Link: "/admin/dologout"})
+	site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Home", Link: "/"})
+}
+
 // handleAdminLogin
 // Show the Login screen
 func handleAdminLogin(w http.ResponseWriter, req *http.Request) {
-	setupMenu("")
 	setMenuItemActive("Admin")
 	if err := adminCheckFirstRun(); err != nil {
 		site.SubTitle = "Create Admin Account"
@@ -127,7 +146,6 @@ func handleAdminDoLogout(w http.ResponseWriter, req *http.Request) {
 	session.Save(req, w)
 
 	site.SubTitle = "Login"
-	setupMenu("")
 	setMenuItemActive("Admin")
 
 	// TODO: Show Flash Message
@@ -138,21 +156,37 @@ func handleAdminDoLogout(w http.ResponseWriter, req *http.Request) {
 }
 
 func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
-	site.SubTitle = "User Management"
-	setupMenu("admin")
+	site.SubTitle = "Admin User Management"
 	setMenuItemActive("Users")
+
+	type userData struct {
+		Users []string
+	}
 
 	vars := mux.Vars(req)
 	userFunction := vars["subfunc"]
+
 	if userFunction == "save" {
 		handleAdminSaveUser(w, req)
 		return
-	}
-	if userFunction == "create" {
+	} else if userFunction == "delete" {
+		handleAdminDeleteUser(w, req)
+		return
 	}
 
 	// No subfunc given, display users
-	if err := showPage("admin-users.html", site, w); err != nil {
+	users, err := getAdminUsers()
+	userList := make([]string, 0, 0)
+	for i := range users {
+		printOutput("Found User: " + users[i] + "\n")
+		userList = append(userList, users[i])
+	}
+	site.TemplateData = userData{Users: userList}
+	if err == nil {
+		if err := showPage("admin-users.html", site, w); err != nil {
+			printOutput(fmt.Sprintf("%s", err))
+		}
+	} else {
 		printOutput(fmt.Sprintf("%s", err))
 	}
 }
@@ -162,7 +196,7 @@ func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 	if email != "" && password != "" {
-		printOutput(fmt.Sprintf("  Save User Request (%s:%s)\n", email, password))
+		printOutput(fmt.Sprintf("  Save User Request (%s)\n", email))
 		if err := adminSaveUser(email, password); err != nil {
 			printOutput(fmt.Sprintf("		Failed!\n"))
 			// TODO: Set Flash Message for Failure
@@ -175,9 +209,23 @@ func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
 	http.Redirect(w, req, "/admin/users", 301)
 }
 
+func handleAdminDeleteUser(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	userItem := vars["item"]
+	printOutput("Deleting User: " + userItem)
+	if err := adminDeleteUser(userItem); err != nil {
+		printOutput(fmt.Sprintf("		Failed!\n"))
+		// TODO: Set Flash Message for Failure
+	} else {
+		printOutput(fmt.Sprintf("		Success!\n"))
+		// TODO: Set Flash Message for Success
+	}
+
+	http.Redirect(w, req, "/admin/users", 301)
+}
+
 func handleAdminResources(w http.ResponseWriter, req *http.Request) {
 	site.SubTitle = "Edit Resources"
-	setupMenu("admin")
 	setMenuItemActive("Resources")
 
 	vars := mux.Vars(req)
@@ -197,7 +245,22 @@ func handleAdminSaveResource(w http.ResponseWriter, req *http.Request) {
 
 func handleAdminFirstCreate(w http.ResponseWriter, req *http.Request) {
 	if err := adminCheckFirstRun(); err != nil {
+		// Fetch the login credentials
+		email := req.FormValue("email")
+		password := req.FormValue("password")
+		repeatpw := req.FormValue("repeat")
 
+		if email != "" && password != "" && password == repeatpw {
+			printOutput(fmt.Sprintf("  Save User Request (%s)\n", email))
+			if err := adminSaveUser(email, password); err != nil {
+				printOutput(fmt.Sprintf("		Failed!\n"))
+				// TODO: Set Flash Message for Failure
+			} else {
+				printOutput(fmt.Sprintf("		Success!\n"))
+				// TODO: Set Flash Message for Success
+			}
+		}
+		http.Redirect(w, req, "/admin/", 301)
 	} else {
 		// We already have an admin account... So...
 		http.Redirect(w, req, "/", 301)

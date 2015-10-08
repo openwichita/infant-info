@@ -20,16 +20,23 @@ var siteTitle = "Infant Info"
 // SiteData contains data needed for many templates
 // Header/Footer/Menu, etc.
 type SiteData struct {
-	Title        string
-	SubTitle     string
-	DevMode      bool
-	Menu         []menuItem
-	BottomMenu   []menuItem
-	AdminMode    bool
+	DevMode bool
+
+	Title       string
+	SubTitle    string
+	AdminMode   bool
+	Port        int
+	SessionName string
+
+	Stylesheets []string
+	Scripts     []string
+
+	Flash      flashMessage // Quick message at top of page
+	Menu       []menuItem   // Top-aligned menu items
+	BottomMenu []menuItem   // Bottom-aligned menu items
+
+	// Any other template data
 	TemplateData interface{}
-	Port         int
-	SessionName  string
-	Flash        flashMessage
 }
 
 type flashMessage struct {
@@ -87,8 +94,9 @@ func main() {
 	// Admin Subrouter
 	s := r.PathPrefix("/admin").Subrouter()
 	s.HandleFunc("/", handleAdmin)
-	s.HandleFunc("/{function}", handleAdmin)
-	s.HandleFunc("/{function}/{subfunc}", handleAdmin)
+	s.HandleFunc("/{category}", handleAdmin)
+	s.HandleFunc("/{category}/{subfunc}", handleAdmin)
+	s.HandleFunc("/{category}/{subfunc}/{item}", handleAdmin)
 
 	r.HandleFunc("/download", handleBackupData)
 
@@ -118,32 +126,34 @@ func showFlashMessage(msg, status string) {
 }
 */
 
+func (s *SiteData) addStylesheet(res string) {
+	s.Stylesheets = append(site.Stylesheets, res)
+}
+
+func (s *SiteData) addScript(res string) {
+	s.Scripts = append(site.Scripts, res)
+}
+
 func initRequest(w http.ResponseWriter, req *http.Request) {
 	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
 	site.SubTitle = ""
 	//site.Flash = new(flashMessage)
-}
 
-// Maybe we want a different menu for the 'admin' stuff?
-// Probably.
-func setupMenu(which string) {
+	site.Stylesheets = make([]string, 0, 0)
+	site.Stylesheets = append(site.Stylesheets, "/assets/css/pure-min.css")
+	site.Stylesheets = append(site.Stylesheets, "/assets/css/ii.css")
+	site.Stylesheets = append(site.Stylesheets, "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css")
+	site.Scripts = make([]string, 0, 0)
+	site.Scripts = append(site.Scripts, "/assets/js/ii.js")
+
 	site.Menu = make([]menuItem, 0, 0)
 	site.BottomMenu = make([]menuItem, 0, 0)
-	if which == "admin" {
-		site.AdminMode = true
-		site.Menu = append(site.Menu, menuItem{Text: "Users", Link: "/admin/users"})
-		site.Menu = append(site.Menu, menuItem{Text: "Resources", Link: "/admin/resources"})
+	site.AdminMode = false
+	site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search/"})
+	site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse/"})
+	site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about/"})
 
-		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Logout", Link: "/admin/dologout"})
-		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Home", Link: "/"})
-	} else {
-		site.AdminMode = false
-		site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search/"})
-		site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse/"})
-		site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about/"})
-
-		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Admin", Link: "/admin/"})
-	}
+	site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Admin", Link: "/admin/"})
 }
 
 // handleSearch
@@ -152,7 +162,6 @@ func handleSearch(w http.ResponseWriter, req *http.Request) {
 	initRequest(w, req)
 
 	site.SubTitle = "Search Resources"
-	setupMenu("")
 	setMenuItemActive("Search")
 	// Was a search action requested?
 	v := req.URL.Query()
@@ -180,7 +189,6 @@ func handleBrowse(w http.ResponseWriter, req *http.Request) {
 	}
 
 	site.SubTitle = "Browse Resources"
-	setupMenu("")
 	setMenuItemActive("Browse")
 
 	site.TemplateData = browseData{
@@ -196,7 +204,6 @@ func handleAbout(w http.ResponseWriter, req *http.Request) {
 	initRequest(w, req)
 
 	site.SubTitle = "About"
-	setupMenu("")
 	setMenuItemActive("About")
 
 	showPage("about.html", site, w)

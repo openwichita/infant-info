@@ -1,4 +1,12 @@
 <div class="content">
-  <p>Admin Users</p>
+  <div class="pure-list-div">
+    <ul class="pure-list">
+    {{ range $i, $v := .TemplateData.Users }}
+      <li class="pure-list-item user-item">
+        {{ $v }} <i data-user="{{ $v }}" class="fa fa-trash-o"></i>
+      </li>
+    {{ end }}
+    </ul>
+  </div>
 </div>
 

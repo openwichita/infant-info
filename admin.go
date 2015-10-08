@@ -37,6 +37,11 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	setMenuItemActive("Admin")
 	printOutput("    Admin/" + adminFunction + "\n")
 
+	if adminFunction == "firstcreate" {
+		printOutput("    First time Create\n")
+		handleAdminFirstCreate(w, req)
+		return
+	}
 	if adminFunction == "logout" {
 		printOutput("    Do Logout\n")
 		handleAdminDoLogout(w, req)
@@ -71,7 +76,7 @@ func handleAdminLogin(w http.ResponseWriter, req *http.Request) {
 	setMenuItemActive("Admin")
 	if err := adminCheckFirstRun(); err != nil {
 		site.SubTitle = "Create Admin Account"
-		showPage("admin-createaccount.html", site, w)
+		showPage("admin-create.html", site, w)
 	} else {
 		site.SubTitle = "Admin Login"
 		showPage("admin-login.html", site, w)
@@ -143,6 +148,8 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 		handleAdminSaveUser(w, req)
 		return
 	}
+	if userFunction == "create" {
+	}
 
 	// No subfunc given, display users
 	if err := showPage("admin-users.html", site, w); err != nil {
@@ -186,4 +193,13 @@ func handleAdminResources(w http.ResponseWriter, req *http.Request) {
 
 func handleAdminSaveResource(w http.ResponseWriter, req *http.Request) {
 	http.Redirect(w, req, "/admin/resources", 301)
+}
+
+func handleAdminFirstCreate(w http.ResponseWriter, req *http.Request) {
+	if err := adminCheckFirstRun(); err != nil {
+
+	} else {
+		// We already have an admin account... So...
+		http.Redirect(w, req, "/", 301)
+	}
 }

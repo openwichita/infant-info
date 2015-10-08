@@ -128,6 +128,13 @@ func backupDatabase(b *bytes.Buffer) error {
 }
 
 // Admin Functions
+// All admin accounts are stored in the admin boltdb like so
+// users		(bucket)
+// |- <email address 1> (bucket)
+// |	 \-password		(pair)
+// |
+// |- <email address 2> (bucket)
+//  	 \-password		(pair)
 func loadAdminDatabase() error {
 	var err error
 	dbAdmin, err = bolt.Open("iiAdmin.db", 0600, nil)
@@ -163,7 +170,9 @@ func adminCheckFirstRun() error {
 	err := dbAdmin.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("users"))
 		// Make sure that we have a bucket in users
+		foundOne := false
 		err := b.ForEach(func(k, v []byte) error {
+			foundOne = true
 			if v == nil {
 				if userBucket := b.Bucket(k); userBucket != nil {
 					// It's a user bucket
@@ -176,6 +185,9 @@ func adminCheckFirstRun() error {
 			}
 			return fmt.Errorf("Couldn't find an Admin User")
 		})
+		if !foundOne {
+			return fmt.Errorf("Couldn't find an Admin User")
+		}
 		return err
 	})
 	closeAdminDatabase()

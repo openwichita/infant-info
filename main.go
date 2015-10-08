@@ -25,6 +25,7 @@ type SiteData struct {
 	SubTitle     string
 	DevMode      bool
 	Menu         []menuItem
+	BottomMenu   []menuItem
 	AdminMode    bool
 	TemplateData interface{}
 	Port         int
@@ -83,9 +84,12 @@ func main() {
 	r.HandleFunc("/browse", handleBrowse)
 	r.HandleFunc("/browse/{tags}", handleBrowse).Name("browse")
 	r.HandleFunc("/about", handleAbout).Name("about")
-	r.HandleFunc("/admin", handleAdmin)
-	r.HandleFunc("/admin/{function}", handleAdmin)
-	r.HandleFunc("/admin/{function}/{subfunc}", handleAdmin)
+
+	// Admin Subrouter
+	s := r.PathPrefix("/admin").Subrouter()
+	s.HandleFunc("/", handleAdmin)
+	s.HandleFunc("/{function}", handleAdmin)
+	s.HandleFunc("/{function}/{subfunc}", handleAdmin)
 
 	r.HandleFunc("/download", handleBackupData)
 
@@ -124,17 +128,22 @@ func initRequest(w http.ResponseWriter, req *http.Request) {
 // Maybe we want a different menu for the 'admin' stuff?
 // Probably.
 func setupMenu(which string) {
+	site.Menu = make([]menuItem, 0, 0)
+	site.BottomMenu = make([]menuItem, 0, 0)
 	if which == "admin" {
 		site.AdminMode = true
-		site.Menu = make([]menuItem, 0, 0)
 		site.Menu = append(site.Menu, menuItem{Text: "Users", Link: "/admin/users"})
 		site.Menu = append(site.Menu, menuItem{Text: "Resources", Link: "/admin/resources"})
+
+		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Logout", Link: "/admin/dologout"})
+		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Home", Link: "/"})
 	} else {
 		site.AdminMode = false
-		site.Menu = make([]menuItem, 0, 0)
 		site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search"})
 		site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse"})
 		site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about"})
+
+		site.BottomMenu = append(site.BottomMenu, menuItem{Text: "Admin", Link: "/admin/"})
 	}
 }
 

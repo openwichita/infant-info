@@ -78,8 +78,12 @@ func initAdminRequest(w http.ResponseWriter, req *http.Request) {
 	site.Stylesheets = append(site.Stylesheets, "/assets/css/pure-min.css")
 	site.Stylesheets = append(site.Stylesheets, "/assets/css/ii.css")
 	site.Stylesheets = append(site.Stylesheets, "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css")
-	site.Scripts = make([]string, 0, 0)
-	site.Scripts = append(site.Scripts, "/assets/js/ii.js")
+	// TODO: Make Dynamic Scripts work
+	/*
+		site.Scripts = make([]string, 0, 0)
+		site.Scripts = append(site.Scripts, "/assets/js/ii.js")
+		site.Scripts = append(site.Scripts, "/assets/js/ii.js")
+	*/
 
 	site.AdminMode = true
 	site.Menu = append(site.Menu, menuItem{Text: "Users", Link: "/admin/users"})
@@ -164,7 +168,7 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 	}
 
 	vars := mux.Vars(req)
-	userFunction := vars["subfunc"]
+	userFunction := vars["action"]
 
 	if userFunction == "save" {
 		handleAdminSaveUser(w, req)
@@ -174,7 +178,7 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// No subfunc given, display users
+	// No action given, display users
 	users, err := getAdminUsers()
 	userList := make([]string, 0, 0)
 	for i := range users {
@@ -229,13 +233,13 @@ func handleAdminResources(w http.ResponseWriter, req *http.Request) {
 	setMenuItemActive("Resources")
 
 	vars := mux.Vars(req)
-	resFunction := vars["subfunc"]
+	resFunction := vars["action"]
 	if resFunction == "save" {
 		handleAdminSaveResource(w, req)
 		return
 	}
 
-	// No subfunc given, display users
+	// No action given, display users
 	showPage("admin-resources.html", site, w)
 }
 

@@ -214,10 +214,38 @@ ul.menu-list-dropped {
   background: #1f8dd6;
 }
 
+div.pure-list-div {
+  margin: auto;
+  width: 100%;
+  border-radius: 3px;
+  border: 1px solid #888888;
+  padding: 3px;
+}
+
+li.user-item {
+  list-style: none;
+}
+
+li.user-item>span {
+  width: 89%;
+  display: inline-block;
+  border-right: 1px dotted #AAAAAA;
+}
+
+li.user-item>i {
+  text-align: center;
+  width: 9%;
+  cursor: pointer;
+}
+
 aside {
   padding: 0.3em 1em;
   border-radius: 3px;
   color: #fff;
+}
+
+.add-admin-user {
+  margin-bottom: 3px;
 }
 
 /* -- Responsive Styles (Media Queries) ------------------------------------- */

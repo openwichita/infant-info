@@ -95,8 +95,8 @@ func main() {
 	s := r.PathPrefix("/admin").Subrouter()
 	s.HandleFunc("/", handleAdmin)
 	s.HandleFunc("/{category}", handleAdmin)
-	s.HandleFunc("/{category}/{subfunc}", handleAdmin)
-	s.HandleFunc("/{category}/{subfunc}/{item}", handleAdmin)
+	s.HandleFunc("/{category}/{action}", handleAdmin)
+	s.HandleFunc("/{category}/{action}/{item}", handleAdmin)
 
 	r.HandleFunc("/download", handleBackupData)
 

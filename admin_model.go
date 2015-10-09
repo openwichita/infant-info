@@ -64,6 +64,21 @@ func getAdminUsers() ([]string, error) {
 	return u, err
 }
 
+func adminIsUser(email string) error {
+	if err := loadAdminDatabase(); err != nil {
+		return err
+	}
+	err := dbAdmin.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("users"))
+		if userBucket := b.Bucket([]byte(email)); userBucket != nil {
+			return nil
+		}
+		return fmt.Errorf("Invalid User")
+	})
+	closeAdminDatabase()
+	return err
+}
+
 func adminCheckCredentials(email, password string) error {
 	if err := loadAdminDatabase(); err != nil {
 		return err

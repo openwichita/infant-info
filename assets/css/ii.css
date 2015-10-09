@@ -214,6 +214,13 @@ ul.menu-list-dropped {
   background: #1f8dd6;
 }
 
+.fa-1-5 {
+  font-size: 1.5em;
+}
+.fa-2 {
+  font-size: 2em;
+}
+
 div.pure-list-div {
   margin: auto;
   width: 100%;
@@ -227,15 +234,17 @@ li.user-item {
 }
 
 li.user-item>span {
-  width: 89%;
   display: inline-block;
-  border-right: 1px dotted #AAAAAA;
 }
 
-li.user-item>i {
+li.user-item>span>i {
   text-align: center;
-  width: 9%;
   cursor: pointer;
+  margin-right: 20px;
+}
+
+.reset-pull {
+  clear: both;
 }
 
 aside {

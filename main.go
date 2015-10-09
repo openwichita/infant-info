@@ -24,7 +24,6 @@ type SiteData struct {
 
 	Title       string
 	SubTitle    string
-	AdminMode   bool
 	Port        int
 	SessionName string
 
@@ -103,6 +102,7 @@ func main() {
 	r.HandleFunc("/", handleSearch)
 
 	http.Handle("/", r)
+
 	printOutput(fmt.Sprintf("Listening on port %d\n", site.Port))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", site.Port), context.ClearHandler(http.DefaultServeMux)))
 }
@@ -126,16 +126,11 @@ func showFlashMessage(msg, status string) {
 }
 */
 
-func (s *SiteData) addStylesheet(res string) {
-	s.Stylesheets = append(site.Stylesheets, res)
-}
-
-func (s *SiteData) addScript(res string) {
-	s.Scripts = append(site.Scripts, res)
-}
-
 func initRequest(w http.ResponseWriter, req *http.Request) {
 	printOutput(fmt.Sprintf("Request: %s\n", req.URL))
+	// Set no caching
+	w.Header().Set("Cache-Control", "no-cache")
+
 	site.SubTitle = ""
 	//site.Flash = new(flashMessage)
 
@@ -148,7 +143,6 @@ func initRequest(w http.ResponseWriter, req *http.Request) {
 
 	site.Menu = make([]menuItem, 0, 0)
 	site.BottomMenu = make([]menuItem, 0, 0)
-	site.AdminMode = false
 	site.Menu = append(site.Menu, menuItem{Text: "Search", Link: "/search/"})
 	site.Menu = append(site.Menu, menuItem{Text: "Browse", Link: "/browse/"})
 	site.Menu = append(site.Menu, menuItem{Text: "About", Link: "/about/"})
@@ -240,6 +234,7 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 		"htmlfooter.html",
 	} {
 		if err := outputTemplate(tmpl, tmplData, w); err != nil {
+			printOutput(fmt.Sprintf("%s\n", err))
 			return err
 		}
 	}
@@ -268,6 +263,28 @@ func setMenuItemActive(which string) {
 			site.Menu[i].Active = false
 		}
 	}
+}
+
+func getSessionStringValue(key string, w http.ResponseWriter, req *http.Request) (string, error) {
+	session, err := sessionStore.Get(req, site.SessionName)
+	if err != nil {
+		return "", err
+	}
+	val := session.Values[key]
+	var retVal string
+	var ok bool
+	if retVal, ok = val.(string); !ok {
+		return "", fmt.Errorf("Unable to create string from %s", key)
+	}
+	return retVal, nil
+}
+
+func assertError(err error, w http.ResponseWriter) bool {
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return true
+	}
+	return false
 }
 
 // printOutput

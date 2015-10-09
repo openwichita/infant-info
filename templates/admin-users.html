@@ -1,12 +1,13 @@
 <div class="content">
   <div class="add-admin-user">
-    <a id="addUserButton" class="success pure-button"><i class="fa fa-plus-circle"></i> Add New User</a>
+    <a id="addUserButton" class="success pure-button pull-right"><i class="fa fa-plus-circle"></i> Add New User</a>
+    <div class="reset-pull"></div>
   </div>
   <div class="pure-list-div">
     <ul class="pure-list">
-    {{ range $i, $v := .TemplateData.Users }}
-      <li class="pure-list-item user-item">
-        <span class="user-item-name">{{ $v }}</span><i data-user="{{ $v }}" class="fa fa-trash-o delete-admin-user"></i>
+    {{ range $i, $v := .TemplateData.List }}
+      <li class="pure-list-item user-item" data-user="{{ $v }}">
+        <span class="user-item-name pull-left">{{ $v }}</span><span class="user-item-actions pull-right"><i class="fa fa-1-5 fa-pencil-square-o edit-admin-user"></i><i class="fa fa-1-5 fa-trash-o delete-admin-user"></i></span><span class="reset-pull"></span>
       </li>
     {{ end }}
     </ul>

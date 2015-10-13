@@ -11,6 +11,8 @@ type editUserData struct {
 	Email      string
 	Password   string
 	FormAction string
+
+	NewUser bool
 }
 
 type listData struct {
@@ -24,13 +26,11 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 
 	vars := mux.Vars(req)
 	adminCategory := vars["category"]
-	printOutput("Admin Category: " + adminCategory + "\n")
 
 	// First, check if we're logged in
 	userEmail, _ := getSessionStringValue("email", w, req)
 
 	// With a valid account
-	printOutput("Checking for Valid Account: " + userEmail + "\n")
 	validUser := adminIsUser(userEmail)
 
 	if validUser != nil {
@@ -40,10 +40,13 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if adminCategory == "firstcreate" {
+			printOutput("First Create...\n")
 			if firstErr := adminCheckFirstRun(); firstErr != nil {
+				printOutput("    Saving...\n")
 				handleAdminSaveUser(w, req)
 			} else {
 				// We already have an admin account... So...
+				printOutput("    REJECTED...\n")
 				http.Redirect(w, req, "/", 302)
 			}
 			return
@@ -96,7 +99,7 @@ func initAdminRequest(w http.ResponseWriter, req *http.Request) {
 	site.Stylesheets = append(site.Stylesheets, "/assets/css/pure-min.css")
 	site.Stylesheets = append(site.Stylesheets, "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css")
 	site.Stylesheets = append(site.Stylesheets, "/assets/css/ii.css")
-	// TODO: Make Dynamic Scripts work
+
 	site.Scripts = make([]string, 0, 0)
 	site.Scripts = append(site.Scripts, "/assets/js/ii.js")
 	site.Scripts = append(site.Scripts, "/assets/js/admin.js")
@@ -115,13 +118,11 @@ func initAdminRequest(w http.ResponseWriter, req *http.Request) {
 func handleAdminLogin(w http.ResponseWriter, req *http.Request) {
 	setMenuItemActive("Admin")
 	if err := adminCheckFirstRun(); err != nil {
-		site.SubTitle = "Create Admin Account"
-		site.TemplateData = editUserData{Email: "", Password: "", FormAction: "/admin/firstcreate"}
-		showPage("admin-edituser.html", site, w)
-	} else {
-		site.SubTitle = "Admin Login"
-		showPage("admin-login.html", site, w)
+		handleAdminCreateUser(w, req)
+		return
 	}
+	site.SubTitle = "Admin Login"
+	showPage("admin-login.html", site, w)
 }
 
 // handleAdminDoLogin
@@ -181,7 +182,10 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	userFunction := vars["action"]
 
-	if userFunction == "edit" {
+	if userFunction == "create" {
+		handleAdminCreateUser(w, req)
+		return
+	} else if userFunction == "edit" {
 		handleAdminEditUser(w, req)
 		return
 	} else if userFunction == "save" {
@@ -207,20 +211,28 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func handleAdminCreateUser(w http.ResponseWriter, req *http.Request) {
+	site.SubTitle = "Create Admin Account"
+	site.TemplateData = editUserData{Email: "", Password: "", FormAction: "/admin/users/save"}
+	showPage("admin-createuser.html", site, w)
+}
 func handleAdminEditUser(w http.ResponseWriter, req *http.Request) {
 	site.SubTitle = "Edit Admin Account"
 	vars := mux.Vars(req)
 	userEmail := vars["item"]
-	site.TemplateData = editUserData{Email: userEmail, Password: "", FormAction: "/admin/users/save/"}
+	site.TemplateData = editUserData{Email: userEmail, Password: "", FormAction: "/admin/users/save/" + userEmail}
 	showPage("admin-edituser.html", site, w)
 }
 
 func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
 	// Fetch the login credentials
-	email := req.FormValue("email")
+	vars := mux.Vars(req)
+	email := vars["item"]
+	if email == "" {
+		email = req.FormValue("email")
+	}
 	password := req.FormValue("password")
 	repeatpw := req.FormValue("repeat")
-	printOutput(fmt.Sprintf("  Starting Save User Process %s -> %s == %s\n", email, password, repeatpw))
 	if email != "" && password != "" && password == repeatpw {
 		printOutput(fmt.Sprintf("  Save User Request (%s)\n", email))
 		if err := adminSaveUser(email, password); err != nil {
@@ -230,6 +242,9 @@ func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
 			printOutput(fmt.Sprintf("		Success!\n"))
 			// TODO: Set Flash Message for Success
 		}
+	} else {
+		printOutput(fmt.Sprintf("		Failed!\n"))
+		// TODO: Set Flash Message for Failure
 	}
 
 	http.Redirect(w, req, "/admin/users", 302)
@@ -240,15 +255,15 @@ func handleAdminDeleteUser(w http.ResponseWriter, req *http.Request) {
 	userItem := vars["item"]
 	printOutput("Deleting User: " + userItem)
 	if err := adminDeleteUser(userItem); err != nil {
-		printOutput(fmt.Sprintf("		Failed!\n"))
+		printOutput(fmt.Sprintf("		Failed: %s!\n", err))
 		// TODO: Set Flash Message for Failure
 	} else {
 		printOutput(fmt.Sprintf("		Success!\n"))
 		// TODO: Set Flash Message for Success
 	}
 
-	handleAdminUsers(w, req)
-	//http.Redirect(w, req, "/admin/users", 302)
+	//handleAdminUsers(w, req)
+	http.Redirect(w, req, "/admin/users", 302)
 }
 
 func handleAdminResources(w http.ResponseWriter, req *http.Request) {

@@ -221,26 +221,25 @@ ul.menu-list-dropped {
   font-size: 2em;
 }
 
-div.pure-list-div {
-  margin: auto;
-  width: 100%;
-  border-radius: 3px;
-  border: 1px solid #888888;
-  padding: 3px;
-}
 
-li.user-item {
-  list-style: none;
-}
-
-li.user-item>span {
-  display: inline-block;
-}
-
-li.user-item>span>i {
+div.users-table-div {
   text-align: center;
+}
+
+div.users-table-div>table#users-table {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+
+tr.user-item>td.user-item-name {
+  text-align: left;
+}
+
+i.edit-admin-user,
+i.delete-admin-user {
   cursor: pointer;
-  margin-right: 20px;
 }
 
 .reset-pull {

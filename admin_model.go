@@ -121,10 +121,14 @@ func adminSaveUser(email, password string) error {
 }
 
 func adminDeleteUser(email string) error {
-	err := dbAdmin.View(func(tx *bolt.Tx) error {
+	if err := loadAdminDatabase(); err != nil {
+		return err
+	}
+	err := dbAdmin.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("users"))
 		return b.DeleteBucket([]byte(email))
 	})
+	closeAdminDatabase()
 	return err
 }
 

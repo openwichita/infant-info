@@ -11,8 +11,6 @@ type editUserData struct {
 	Email      string
 	Password   string
 	FormAction string
-
-	NewUser bool
 }
 
 type listData struct {

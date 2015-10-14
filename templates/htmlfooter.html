@@ -1,4 +1,7 @@
     </div>
-    <script src="/assets/js/ui.js"></script>
+    <!-- TODO: Add Dynamic Scripts -->
+    {{ range $i, $v := .Scripts }}
+    <script src="{{ $v }}"></script>
+    {{ end }}
   </body>
 </html>

@@ -1,4 +1,29 @@
 <div class="content">
-  <p>Admin Users</p>
+  <div class="add-admin-user">
+        <div class="reset-pull"></div>
+  </div>
+  <div class="users-table-div">
+    <table id="users-table" class="pure-table">
+      <thead>
+        <tr id="users-table-header-row">
+          <th class="user-header-name">Users</th>
+          <th colspan="2" class="user-header-action">
+            <a id="addUserButton" class="success pure-button pull-right">
+              <i class="fa fa-plus-circle"></i>
+            </a>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+      {{ range $i, $v := .TemplateData.List }}
+        <tr class="user-item" data-user="{{ $v }}">
+          <td class="user-item-name">{{ $v }}</td>
+          <td class="user-item-action"><i class="fa fa-1-5 fa-pencil-square-o edit-admin-user"></i></td>
+          <td class="user-item-action"><i class="fa fa-1-5 fa-trash-o delete-admin-user"></i></td>
+        </tr>
+      {{ end }}
+      </tbody>
+    </table>
+  </div>
 </div>
 

@@ -63,10 +63,10 @@ func main() {
 	site.Port = 8080
 	site.SessionName = "infant-info"
 
-	if err := loadDatabase(); err != nil {
-		log.Fatal("Error loading database", err)
-	}
-	defer closeDatabase()
+	//if err := loadDatabase(); err != nil {
+	//	log.Fatal("Error loading database", err)
+	//}
+	//defer closeDatabase()
 
 	args := os.Args[1:]
 	for i := range args {
@@ -87,14 +87,16 @@ func main() {
 	http.Handle("/assets/", http.StripPrefix("/assets/", assetHandler))
 	r.HandleFunc("/search/", handleSearch)
 	r.HandleFunc("/browse/", handleBrowse)
-	r.HandleFunc("/browse/{tags}", handleBrowse).Name("browse")
-	r.HandleFunc("/about/", handleAbout).Name("about")
+	r.HandleFunc("/browse/{tags}", handleBrowse)
+	r.HandleFunc("/about/", handleAbout)
 
 	// Admin Subrouter
 	s := r.PathPrefix("/admin").Subrouter()
 	s.HandleFunc("/", handleAdmin)
 	s.HandleFunc("/{category}", handleAdmin)
+	s.HandleFunc("/{category}/", handleAdmin)
 	s.HandleFunc("/{category}/{action}", handleAdmin)
+	s.HandleFunc("/{category}/{action}/", handleAdmin)
 	s.HandleFunc("/{category}/{action}/{item}", handleAdmin)
 
 	r.HandleFunc("/download", handleBackupData)

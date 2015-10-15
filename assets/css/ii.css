@@ -231,8 +231,6 @@ div.users-table-div>table#users-table {
   margin-right: auto;
 }
 
-
-
 tr.user-item>td.user-item-name {
   text-align: left;
 }
@@ -254,6 +252,19 @@ aside {
 
 .add-admin-user {
   margin-bottom: 3px;
+}
+
+/* Resource Admin Page */
+span.resource-item-tag {
+  border-radius: 5px;
+  background: #008ED4 none repeat scroll 0% 0%;
+  color: white;
+  padding: 3px;
+}
+
+i.edit-resource,
+i.delete-resource {
+  cursor: pointer
 }
 
 /* -- Responsive Styles (Media Queries) ------------------------------------- */

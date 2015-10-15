@@ -1,3 +1,34 @@
 <div class="content">
-  <p>Edit Resources</p>
+  <div class="resources-table-div">
+    <table id="resources-table" class="pure-table">
+      <thead>
+        <tr id="resources-table-header-row">
+          <th class="resources-header-title">Resource</th>
+          <th class="resources-header-url">URL</th>
+          <th class="resources-header-tags">Tags</th>
+          <th colspan="2" class="resources-header-action">
+            <a id="addResourceButton" class="success pure-button pull-right">
+              <i class="fa fa-plus-circle"></i>
+            </a>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+      {{ range $i, $v := .TemplateData.Resources }}
+        <tr class="resource-item" data-resource="{{ $v.Title }}">
+          <td class="resource-item-title">{{ $v.Title }}</td>
+          <td class="resource-item-url"><a href="{{ $v.URL }}">{{ $v.URL }}</a></td>
+          <td class="resource-item-tags">
+            {{ range $vi, $vv := $v.Tags }}
+            <span class="resource-item-tag">{{ $vv }}</span>
+            {{ end }}
+          </td>
+          <td class="resource-item-action"><i class="fa fa-1-5 fa-pencil-square-o edit-resource"></i></td>
+          <td class="resource-item-action"><i class="fa fa-1-5 fa-trash-o delete-resource"></i></td>
+        </tr>
+      {{ end }}
+      </tbody>
+    </table>
+  </div>
 </div>
+

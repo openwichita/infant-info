@@ -45,6 +45,7 @@ func closeDatabase() error {
 }
 
 // All resources are saved in the boltdb like so:
+// Likely there will be changes here when we actually get resources
 // resources		(bucket)
 // |- Title 1	(bucket)
 // | |-url		(pair)
@@ -55,6 +56,9 @@ func closeDatabase() error {
 //   \-tags		(pair) (csv)
 
 func saveResource(res resource) error {
+	if err := loadDatabase(); err != nil {
+		return err
+	}
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
 		var newB *bolt.Bucket
@@ -70,11 +74,15 @@ func saveResource(res resource) error {
 		}
 		return nil
 	})
+	closeDatabase()
 	return err
 }
 
 func getResources() ([]resource, error) {
-	var ret []resource
+	ret := make([]resource, 0, 0)
+	if err := loadDatabase(); err != nil {
+		return ret, err
+	}
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
 		err := b.ForEach(func(k, v []byte) error {
@@ -98,16 +106,52 @@ func getResources() ([]resource, error) {
 		}
 		return nil
 	})
+	closeDatabase()
 	return ret, err
 }
 
-func backupDatabase(b *bytes.Buffer) error {
+func getResource(title string) (resource, error) {
+	var ret resource
+	if err := loadDatabase(); err != nil {
+		return ret, err
+	}
+	err := db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("resources"))
+		rB := b.Bucket([]byte(title))
+		ret.Title = string(title)
+		if rVal := rB.Get([]byte("tags")); rVal != nil {
+			ret.Tags = strings.Split(string(rVal), ",")
+		}
+		if rVal := rB.Get([]byte("url")); rVal != nil {
+			ret.URL = string(rVal)
+		}
+		return nil
+	})
 	closeDatabase()
+	return ret, err
+}
+
+func deleteResource(title string) error {
+	if err := loadDatabase(); err != nil {
+		return err
+	}
+	err := db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("resources"))
+		return b.DeleteBucket([]byte(title))
+	})
+	closeDatabase()
+	return err
+}
+
+func backupDatabase(b *bytes.Buffer) error {
+	if err := loadDatabase(); err != nil {
+		return err
+	}
 	err := db.View(func(tx *bolt.Tx) error {
 		_, err := tx.WriteTo(b)
 		return err
 	})
-	loadDatabase()
+	closeDatabase()
 	return err
 	/*
 		err := db.View(func(tx *bolt.Tx) error {

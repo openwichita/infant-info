@@ -1,0 +1,26 @@
+<div class="content">
+  <form class="pure-form pure-form-aligned" action="{{ .TemplateData.FormAction }} " method="POST">
+    <fieldset>
+
+      <div class="pure-control-group">
+        <label for="title"></label>
+        <input id="title" name="title" type="text" placeholder="Title" value="{{ .TemplateData.Resource.Title }}">
+      </div>
+
+      <div class="pure-control-group">
+        <label for="url"></label>
+        <input id="url" name="url" type="text" placeholder="Url" value="{{ .TemplateData.Resource.URL }}">
+      </div>
+
+      <div class="pure-control-group">
+        <label for="tags"></label>
+        <input id="tags" name="tags" type="text" placeholder="Tags" value="{{ .TemplateData.ResourceTags }}">
+      </div>
+
+      <div class="pure-controls">
+        <button type="submit" class="pure-button pure-button-primary">Submit</button>
+      </div>
+
+    </fieldset>
+  </form>
+</div>

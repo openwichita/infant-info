@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -23,6 +25,7 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 	initAdminRequest(w, req)
 
 	vars := mux.Vars(req)
+
 	adminCategory := vars["category"]
 
 	// First, check if we're logged in
@@ -38,13 +41,10 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if adminCategory == "firstcreate" {
-			printOutput("First Create...\n")
 			if firstErr := adminCheckFirstRun(); firstErr != nil {
-				printOutput("    Saving...\n")
 				handleAdminSaveUser(w, req)
 			} else {
 				// We already have an admin account... So...
-				printOutput("    REJECTED...\n")
 				http.Redirect(w, req, "/", 302)
 			}
 			return
@@ -198,7 +198,6 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 	users, err := getAdminUsers()
 	userList := make([]string, 0, 0)
 	for i := range users {
-		printOutput("Found User: " + users[i] + "\n")
 		userList = append(userList, users[i])
 	}
 	site.TemplateData = listData{List: userList}
@@ -218,7 +217,7 @@ func handleAdminEditUser(w http.ResponseWriter, req *http.Request) {
 	site.SubTitle = "Edit Admin Account"
 	vars := mux.Vars(req)
 	userEmail := vars["item"]
-	site.TemplateData = editUserData{Email: userEmail, Password: "", FormAction: "/admin/users/save/" + userEmail}
+	site.TemplateData = editUserData{Email: userEmail, Password: "", FormAction: "/admin/users/save/" + url.QueryEscape(userEmail)}
 	showPage("admin-edituser.html", site, w)
 }
 
@@ -265,28 +264,135 @@ func handleAdminDeleteUser(w http.ResponseWriter, req *http.Request) {
 }
 
 func handleAdminResources(w http.ResponseWriter, req *http.Request) {
-	site.SubTitle = "Edit Resources"
+	site.SubTitle = "Resource Management"
 	setMenuItemActive("Resources")
 
 	vars := mux.Vars(req)
 	resFunction := vars["action"]
-	if resFunction == "save" {
+	if resFunction == "create" {
+		handleAdminEditResource(w, req)
+		return
+	} else if resFunction == "edit" {
+		handleAdminEditResource(w, req)
+		return
+	} else if resFunction == "save" {
 		handleAdminSaveResource(w, req)
 		return
+	} else if resFunction == "delete" {
 	}
 
-	// No action given, display users
-	showPage("admin-resources.html", site, w)
+	// No action given, display resources
+	type resList struct {
+		Resources []resource
+	}
+	var rList resList
+	var err error
+	rList.Resources, err = getResources()
+	for i := range rList.Resources {
+		printOutput(fmt.Sprintf("%s -> %d\n", rList.Resources[i].Title, len(rList.Resources[i].Tags)))
+		if len(rList.Resources[i].Tags) == 1 {
+			// Make sure that the tag isn't actually blank
+			if rList.Resources[i].Tags[0] == "" {
+				rList.Resources[i].Tags = make([]string, 0, 0)
+			}
+		} else if len(rList.Resources[i].Tags) > 3 {
+			rList.Resources[i].Tags = rList.Resources[i].Tags[0:2]
+			rList.Resources[i].Tags = append(rList.Resources[i].Tags, "...")
+		}
+	}
+	site.TemplateData = rList
+	if err == nil {
+		showPage("admin-resources.html", site, w)
+		return
+	}
+	printOutput(fmt.Sprintf("%s\n", err))
+
+	http.Redirect(w, req, "/admin/resources", 302)
+}
+func handleAdminEditResource(w http.ResponseWriter, req *http.Request) {
+	type tempData struct {
+		FormAction   string
+		Resource     resource
+		ResourceTags string
+	}
+	site.SubTitle = "Edit Resource"
+	vars := mux.Vars(req)
+	resTitle, err := url.QueryUnescape(vars["item"])
+	var res resource
+	if resTitle != "" {
+		if res, err = getResource(resTitle); err == nil {
+			site.TemplateData = tempData{
+				FormAction:   "/admin/resources/save/" + url.QueryEscape(resTitle),
+				Resource:     res,
+				ResourceTags: strings.Join(res.Tags, ","),
+			}
+		}
+	} else {
+		site.TemplateData = tempData{
+			FormAction:   "/admin/resources/save",
+			Resource:     resource{},
+			ResourceTags: "",
+		}
+	}
+	showPage("admin-editresource.html", site, w)
+	return
+}
+
+func handleAdminDeleteResource(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	resItem, err := url.QueryUnescape(vars["item"])
+	if err != nil {
+		printOutput(fmt.Sprintf("%s\n", err))
+		http.Redirect(w, req, "/admin/resources", 302)
+	}
+	printOutput("Deleting Resource: " + resItem)
+	if err := deleteResource(resItem); err != nil {
+		printOutput(fmt.Sprintf("		Failed: %s!\n", err))
+		// TODO: Set Flash Message for Failure
+	} else {
+		printOutput(fmt.Sprintf("		Success!\n"))
+		// TODO: Set Flash Message for Success
+	}
+	http.Redirect(w, req, "/admin/resources", 302)
 }
 
 func handleAdminSaveResource(w http.ResponseWriter, req *http.Request) {
-	/* Create/Update Resource Example:
-	if err := SaveResource(
-		Resource{Title: "New Resource", Url: "http://www.google.com", Tags: make([]string, 0, 0)},
-	); err != nil {
-		Handle Error
+	// Fetch the Resource Details
+	vars := mux.Vars(req)
+	origTitle, err := url.QueryUnescape(vars["item"])
+	if err != nil {
+		printOutput(fmt.Sprintf("%s\n", err))
+		http.Redirect(w, req, "/admin/resources", 302)
 	}
-	*/
-
+	if origTitle == "" {
+		printOutput("Saving New Resource\n")
+	} else {
+		printOutput("Saving Old Resource\n")
+	}
+	title := req.FormValue("title")
+	url := req.FormValue("url")
+	tags := req.FormValue("tags")
+	printOutput(fmt.Sprintf("  %s -> %s\n", title, url))
+	if title != "" && url != "" {
+		if origTitle != "" {
+			printOutput("Deleting Original Resource (" + origTitle + ")\n")
+			deleteResource(origTitle)
+		}
+		tagsSlice := make([]string, 0, 0)
+		for _, v := range strings.Split(string(tags), ",") {
+			if v != "" {
+				// Append to tag slice
+				tagsSlice = append(tagsSlice, v)
+			}
+		}
+		printOutput("Creating New Resource (" + title + ")\n")
+		if err := saveResource(
+			resource{Title: title, URL: url, Tags: tagsSlice},
+			// TODO: Set Flash Message for Success
+		); err != nil {
+			printOutput(fmt.Sprintf("%s\n", err))
+			// TODO: Set Flash Message for Failure
+		}
+	}
 	http.Redirect(w, req, "/admin/resources", 302)
 }

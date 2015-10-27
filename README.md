@@ -21,3 +21,7 @@ To run:
 This should pull in the project with all of its dependencies.
 
 'go build' to build the executable.
+
+'./infant-info' for silent mode or './infant-info --dev' for verbose console messages.
+
+Navigate to 'localhost:8080' in your web browser.

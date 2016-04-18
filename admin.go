@@ -44,6 +44,7 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 			if firstErr := adminCheckFirstRun(); firstErr != nil {
 				handleAdminSaveUser(w, req)
 			} else {
+				printOutput(firstErr.Error())
 				// We already have an admin account... So...
 				http.Redirect(w, req, "/", 302)
 			}
@@ -210,7 +211,15 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 
 func handleAdminCreateUser(w http.ResponseWriter, req *http.Request) {
 	site.SubTitle = "Create Admin Account"
-	site.TemplateData = editUserData{Email: "", Password: "", FormAction: "/admin/users/save"}
+	var frmAction string
+	vars := mux.Vars(req)
+	userFunction := vars["action"]
+	if userFunction == "create" {
+		frmAction = "/admin/users/save"
+	} else {
+		frmAction = "/admin/firstcreate"
+	}
+	site.TemplateData = editUserData{Email: "", Password: "", FormAction: frmAction}
 	showPage("admin-createuser.html", site, w)
 }
 func handleAdminEditUser(w http.ResponseWriter, req *http.Request) {
@@ -230,6 +239,7 @@ func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
 	}
 	password := req.FormValue("password")
 	repeatpw := req.FormValue("repeat")
+	printOutput(email + " :: " + password + " :: " + repeatpw)
 	if email != "" && password != "" && password == repeatpw {
 		printOutput(fmt.Sprintf("  Save User Request (%s)\n", email))
 		if err := adminSaveUser(email, password); err != nil {

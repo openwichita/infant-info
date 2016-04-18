@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -217,7 +218,7 @@ func handleBackupData(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", `attachment; filename="infant-info.db"`)
-	w.Header().Set("Content-Length", strconv.Itoa(int(b.Len())))
+	w.Header().Set("Content-Length", strconv.Itoa(b.Len()))
 	_, err = b.WriteTo(w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -226,7 +227,7 @@ func handleBackupData(w http.ResponseWriter, req *http.Request) {
 
 // showPage
 // Load a template and all of the surrounding templates
-func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
+func showPage(tmplName string, tmplData interface{}, w io.Writer) error {
 	for _, tmpl := range []string{
 		"htmlheader.html",
 		"menu.html",
@@ -245,7 +246,7 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 
 // outputTemplate
 // Spit out a template
-func outputTemplate(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
+func outputTemplate(tmplName string, tmplData interface{}, w io.Writer) error {
 	_, err := os.Stat("templates/" + tmplName)
 	if err == nil {
 		t := template.New(tmplName)
@@ -279,14 +280,6 @@ func getSessionStringValue(key string, w http.ResponseWriter, req *http.Request)
 		return "", fmt.Errorf("Unable to create string from %s", key)
 	}
 	return retVal, nil
-}
-
-func assertError(err error, w http.ResponseWriter) bool {
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return true
-	}
-	return false
 }
 
 // printOutput

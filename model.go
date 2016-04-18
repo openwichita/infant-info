@@ -26,11 +26,8 @@ func loadDatabase() error {
 
 	// Make sure that the 'resources' bucket exists
 	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("resources"))
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err = tx.CreateBucketIfNotExists([]byte("resources"))
+		return err
 	})
 
 	if err != nil {

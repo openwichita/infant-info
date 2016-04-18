@@ -26,11 +26,8 @@ func loadAdminDatabase() error {
 
 	// Make sure that the 'users' bucket exists
 	err = dbAdmin.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("users"))
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err = tx.CreateBucketIfNotExists([]byte("users"))
+		return err
 	})
 
 	if err != nil {

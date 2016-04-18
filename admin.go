@@ -19,6 +19,13 @@ type listData struct {
 	List []string
 }
 
+const (
+	actCreate = "create"
+	actEdit   = "edit"
+	actSave   = "save"
+	actDelete = "delete"
+)
+
 // handleAdmin
 // Handle entry into the Admin side of things
 func handleAdmin(w http.ResponseWriter, req *http.Request) {
@@ -180,16 +187,16 @@ func handleAdminUsers(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	userFunction := vars["action"]
 
-	if userFunction == "create" {
+	if userFunction == actCreate {
 		handleAdminCreateUser(w, req)
 		return
-	} else if userFunction == "edit" {
+	} else if userFunction == actEdit {
 		handleAdminEditUser(w, req)
 		return
-	} else if userFunction == "save" {
+	} else if userFunction == actSave {
 		handleAdminSaveUser(w, req)
 		return
-	} else if userFunction == "delete" {
+	} else if userFunction == actDelete {
 		handleAdminDeleteUser(w, req)
 		return
 	}
@@ -213,7 +220,7 @@ func handleAdminCreateUser(w http.ResponseWriter, req *http.Request) {
 	var frmAction string
 	vars := mux.Vars(req)
 	userFunction := vars["action"]
-	if userFunction == "create" {
+	if userFunction == actCreate {
 		frmAction = "/admin/users/save"
 	} else {
 		frmAction = "/admin/firstcreate"
@@ -277,16 +284,16 @@ func handleAdminResources(w http.ResponseWriter, req *http.Request) {
 
 	vars := mux.Vars(req)
 	resFunction := vars["action"]
-	if resFunction == "create" {
+	if resFunction == actCreate {
 		handleAdminEditResource(w, req)
 		return
-	} else if resFunction == "edit" {
+	} else if resFunction == actEdit {
 		handleAdminEditResource(w, req)
 		return
-	} else if resFunction == "save" {
+	} else if resFunction == actSave {
 		handleAdminSaveResource(w, req)
 		return
-	} else if resFunction == "delete" {
+	} else if resFunction == actDelete {
 	}
 
 	// No action given, display resources

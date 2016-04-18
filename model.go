@@ -117,7 +117,7 @@ func getResource(title string) (resource, error) {
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("resources"))
 		rB := b.Bucket([]byte(title))
-		ret.Title = string(title)
+		ret.Title = title
 		if rVal := rB.Get([]byte("tags")); rVal != nil {
 			ret.Tags = strings.Split(string(rVal), ",")
 		}

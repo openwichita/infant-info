@@ -217,7 +217,7 @@ func handleBackupData(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", `attachment; filename="infant-info.db"`)
-	w.Header().Set("Content-Length", strconv.Itoa(int(b.Len())))
+	w.Header().Set("Content-Length", strconv.Itoa(b.Len()))
 	_, err = b.WriteTo(w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

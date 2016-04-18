@@ -387,7 +387,7 @@ func handleAdminSaveResource(w http.ResponseWriter, req *http.Request) {
 			deleteResource(origTitle)
 		}
 		tagsSlice := make([]string, 0, 0)
-		for _, v := range strings.Split(string(tags), ",") {
+		for _, v := range strings.Split(tags, ",") {
 			if v != "" {
 				// Append to tag slice
 				tagsSlice = append(tagsSlice, v)

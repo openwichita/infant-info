@@ -281,14 +281,6 @@ func getSessionStringValue(key string, w http.ResponseWriter, req *http.Request)
 	return retVal, nil
 }
 
-func assertError(err error, w http.ResponseWriter) bool {
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return true
-	}
-	return false
-}
-
 // printOutput
 // Print something to the screen, if conditions are right
 func printOutput(out string) {

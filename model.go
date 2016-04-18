@@ -13,7 +13,6 @@ type resource struct {
 	Tags  []string
 }
 
-var databaseFile string
 var db *bolt.DB
 
 // loadDatabase Opens the database file and makes sure that the

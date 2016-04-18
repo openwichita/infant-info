@@ -44,7 +44,6 @@ func handleAdmin(w http.ResponseWriter, req *http.Request) {
 			if firstErr := adminCheckFirstRun(); firstErr != nil {
 				handleAdminSaveUser(w, req)
 			} else {
-				printOutput(firstErr.Error())
 				// We already have an admin account... So...
 				http.Redirect(w, req, "/", 302)
 			}
@@ -239,7 +238,6 @@ func handleAdminSaveUser(w http.ResponseWriter, req *http.Request) {
 	}
 	password := req.FormValue("password")
 	repeatpw := req.FormValue("repeat")
-	printOutput(email + " :: " + password + " :: " + repeatpw)
 	if email != "" && password != "" && password == repeatpw {
 		printOutput(fmt.Sprintf("  Save User Request (%s)\n", email))
 		if err := adminSaveUser(email, password); err != nil {

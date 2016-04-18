@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"io"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -139,7 +139,7 @@ func deleteResource(title string) error {
 	return err
 }
 
-func backupDatabase(b *bytes.Buffer) error {
+func backupDatabase(b io.Writer) error {
 	if err := loadDatabase(); err != nil {
 		return err
 	}
@@ -148,17 +148,6 @@ func backupDatabase(b *bytes.Buffer) error {
 		return err
 	})
 	closeDatabase()
+
 	return err
-	/*
-		err := db.View(func(tx *bolt.Tx) error {
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.Header().Set("Content-Disposition", `attachment; filename="infant-info.db"`)
-			w.Header().Set("Content-Length", strconv.Itoa(int(tx.Size())))
-			_, err := tx.WriteTo(w)
-			return err
-		})
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	*/
 }

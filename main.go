@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -226,7 +227,7 @@ func handleBackupData(w http.ResponseWriter, req *http.Request) {
 
 // showPage
 // Load a template and all of the surrounding templates
-func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
+func showPage(tmplName string, tmplData interface{}, w io.Writer) error {
 	for _, tmpl := range []string{
 		"htmlheader.html",
 		"menu.html",
@@ -245,7 +246,7 @@ func showPage(tmplName string, tmplData interface{}, w http.ResponseWriter) erro
 
 // outputTemplate
 // Spit out a template
-func outputTemplate(tmplName string, tmplData interface{}, w http.ResponseWriter) error {
+func outputTemplate(tmplName string, tmplData interface{}, w io.Writer) error {
 	_, err := os.Stat("templates/" + tmplName)
 	if err == nil {
 		t := template.New(tmplName)

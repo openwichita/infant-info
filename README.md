@@ -7,24 +7,34 @@ In part, this is due to a lack of knowledge about what resources are available.
 
 The goal of this mobile application and website is to be a central repository for that info that nurses, midwives, and anyone else can use to find the resources that they need to help.
 
-To run:
+# To Run
+
 * Install Git
   * https://help.github.com/articles/set-up-git/
 * Install Go
   * https://golang.org/doc/install
-
 * Clone the repository locally with
-  * 'go get github.com/openwichita/infant-info'
-* or clone your fork locally with
-  * 'go get github.com/[your github username]/infant-info'
+  * `go get github.com/openwichita/infant-info`
 
 This should pull in the project with all of its dependencies.
 
-'go build' to build the executable.
+Switch to the `$GOPATH/github.com/openwichita/infant-info` directory and run
+`go build` to build the executable. You must be in the directory when you do in
+order to find the templates and assets.
 
-'./infant-info' for silent mode or './infant-info --dev' for verbose console messages.
+Run the project with `./infant-info` for silent mode or `./infant-info --dev`
+for verbose console messages.
 
-Navigate to 'localhost:8080' in your web browser.
+Navigate to `localhost:8080` in your web browser.
+
+# To Contribute
+
+* Install the project as defined above using `go get`.
+* Fork the project on GitHub to your own account
+* In the project folder add your fork as another git remote: `git remote add fork url-to-your-forked-repo`
+* Make a branch off the current `master` branch for your feature. This is where
+  you should perform your work.
+* Push your branch to your remote `fork` repo then issue a pull request.
 
 TODO
 ========

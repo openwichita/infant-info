@@ -8,9 +8,17 @@ import (
 )
 
 type resource struct {
-	Title string
-	URL   string
-	Tags  []string
+	Title       string
+	Description string
+	URL         string
+	Org         string
+	Address     string
+	Email       string
+	Phone       string
+	Hours       string
+	Fees        []string
+	Languages   []string
+	Tags        []string
 }
 
 var db *bolt.DB
@@ -42,14 +50,30 @@ func closeDatabase() error {
 
 // All resources are saved in the boltdb like so:
 // Likely there will be changes here when we actually get resources
-// resources		(bucket)
+// resources			(bucket)
 // |- Title 1	(bucket)
-// | |-url		(pair)
-// | \-tags		(pair) (csv)
+// | |-description	(pair)
+// | |-url			(pair)
+// | |-org			(pair)
+// | |-address		(pair)
+// | |-email		(pair)
+// | |-phone		(pair)
+// | |-hours		(pair)
+// | |-fees			(pair) (csv)
+// | |-languages	(pair) (csv)
+// | \-tags			(pair) (csv)
 // |
 // \- Title 2	(bucket)
-//   |-url		(pair)
-//   \-tags		(pair) (csv)
+//   |-description	(pair)
+//   |-url			(pair)
+//   |-org			(pair)
+//   |-address		(pair)
+//   |-email		(pair)
+//   |-phone		(pair)
+//   |-hours		(pair)
+//   |-fees			(pair) (csv)
+//   |-languages	(pair) (csv)
+//   \-tags			(pair) (csv)
 
 func saveResource(res resource) error {
 	if err := loadDatabase(); err != nil {
@@ -62,7 +86,31 @@ func saveResource(res resource) error {
 		if newB, err = b.CreateBucketIfNotExists([]byte(res.Title)); err != nil {
 			return err
 		}
+		if err := newB.Put([]byte("description"), []byte(res.Description)); err != nil {
+			return err
+		}
 		if err := newB.Put([]byte("url"), []byte(res.URL)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("org"), []byte(res.Org)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("address"), []byte(res.Address)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("email"), []byte(res.Email)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("phone"), []byte(res.Phone)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("hours"), []byte(res.Hours)); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("fees"), []byte(strings.Join(res.Fees, ","))); err != nil {
+			return err
+		}
+		if err := newB.Put([]byte("languages"), []byte(strings.Join(res.Languages, ","))); err != nil {
 			return err
 		}
 		if err := newB.Put([]byte("tags"), []byte(strings.Join(res.Tags, ","))); err != nil {
@@ -90,8 +138,32 @@ func getResources() ([]resource, error) {
 				if rVal := rB.Get([]byte("tags")); rVal != nil {
 					retRes.Tags = strings.Split(string(rVal), ",")
 				}
+				if rVal := rB.Get([]byte("languages")); rVal != nil {
+					retRes.Languages = strings.Split(string(rVal), ",")
+				}
+				if rVal := rB.Get([]byte("fees")); rVal != nil {
+					retRes.Fees = strings.Split(string(rVal), ",")
+				}
+				if rVal := rB.Get([]byte("hours")); rVal != nil {
+					retRes.Hours = string(rVal)
+				}
+				if rVal := rB.Get([]byte("phone")); rVal != nil {
+					retRes.Phone = string(rVal)
+				}
+				if rVal := rB.Get([]byte("email")); rVal != nil {
+					retRes.Email = string(rVal)
+				}
+				if rVal := rB.Get([]byte("address")); rVal != nil {
+					retRes.Address = string(rVal)
+				}
+				if rVal := rB.Get([]byte("org")); rVal != nil {
+					retRes.Org = string(rVal)
+				}
 				if rVal := rB.Get([]byte("url")); rVal != nil {
 					retRes.URL = string(rVal)
+				}
+				if rVal := rB.Get([]byte("description")); rVal != nil {
+					retRes.Description = string(rVal)
 				}
 				ret = append(ret, retRes)
 			}
